@@ -28,7 +28,8 @@
       "evidence": [
         "2026-10-28: ./init.sh full run passed end to end: ruff clean, uv run pytest 8 passed (session 002, PROGRESS.md), tsc && vite build ok, cargo check ok.",
         "2026-10-28: live sidecar smoke test: curl /health -> 401 without token, 200 with Bearer token on 127.0.0.1.",
-        "2026-10-28: backend/tests/test_auth.py: 8 tests covering missing/wrong token, wrong scheme, unknown routes, unset token, env-provided token."
+        "2026-10-28: backend/tests/test_auth.py: 8 tests covering missing/wrong token, wrong scheme, unknown routes, unset token, env-provided token.",
+        "2026-10-28: `npm run tauri dev` launched the real app end to end: window opened, sidecar spawned, migrations ran, supervisor logged 'sidecar healthy on 127.0.0.1:34443'. This run exposed that the sidecar was spawned from the wrong working directory ('No module named app'); fixed to spawn from backend/ and re-verified with a full ./init.sh run."
       ],
       "notes": "Phase 1 step 1. Rust core stays minimal: window, sidecar spawn, token, two commands. Comes with README (setup/dev/build instructions) and .env.example."
     },

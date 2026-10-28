@@ -47,15 +47,13 @@ fn project_root() -> &'static Path {
 }
 
 fn spawn_backend(port: u16, token: &str) -> io::Result<Child> {
-    let root = project_root();
+    let backend_dir = project_root().join("backend");
     Command::new("uv")
         .arg("run")
-        .arg("--project")
-        .arg(root.join("backend"))
         .arg("python")
         .arg("-m")
         .arg("app")
-        .current_dir(root)
+        .current_dir(&backend_dir)
         .env("STAGE_FINDER_PORT", port.to_string())
         .env("STAGE_FINDER_SESSION_TOKEN", token)
         .spawn()

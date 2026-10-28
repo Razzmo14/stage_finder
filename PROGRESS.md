@@ -64,13 +64,22 @@ automatically.
   this file.
 - Commits: 7de9f13 (skel-001) + this session's db-002 commit.
 - Known risk or unresolved issue:
-  - The desktop app spawns the sidecar via `uv run` from the project
+  - The desktop app spawns the sidecar via `uv run` from the backend
     directory (dev-mode); release packaging (PyInstaller externalBin) is
     feature pkg-016. `tauri build` outputs are not verifiable until then.
-  - The GUI itself (`npm run tauri dev`) has not been exercised end to end in
-    this session (no display in the agent environment); the health poll and
-    commands are verified at the HTTP/cargo level instead.
+  - The GUI was launched end to end this session (`npm run tauri dev`,
+    display available): window opened (WebKit webview processes present),
+    sidecar started, migrations ran, supervisor reported
+    "sidecar healthy on 127.0.0.1:34443". This exposed and fixed a real
+    bug: the Rust core ran `python -m app` from the project root instead
+    of backend/ ("No module named app"); spawn now uses
+    `current_dir = backend/`.
+  - Non-fatal Mesa/libEGL warnings appear in the console on this machine
+    (software rendering, no GPU); the window still opens.
   - sqlite-vec and the embedding model-name tables land with match-006.
+- Verification run (session 002, final): ./init.sh full run passed after
+  the sidecar-spawn fix (ruff clean, pytest 16 passed, tsc && vite build,
+  cargo check); `npm run tauri dev` launched the real app end to end.
 - Next best step: implement llm-003 (OpenRouter client behind the
   LLMProvider interface: keychain-stored API key via keyring, live model
   catalog GET /api/v1/models with caching, capability-aware structured
