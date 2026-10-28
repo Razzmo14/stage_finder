@@ -18,12 +18,11 @@ automatically.
   tsc+vite build, cargo check)
 - Standard verification path: ./init.sh (same; SKIP_CARGO_CHECK=1 skips the
   Rust core)
-- Features skel-001 through i18n-015 (Phase 1 and Phase 2): passing with
-  evidence in feature_list.json. pkg-016 and release-017: in_progress —
-  see the blockers section below.
-- Current blocker: none for local work. Two features remain partially
-  verified for external reasons (signing identities / CI execution), see
-  below.
+- Features skel-001 through pkg-016 (Phase 1 and Phase 2): passing with
+  evidence in feature_list.json. release-017: in_progress (signing and
+  auto-update need maintainer identities + a published update server).
+- Current blocker: none for local work; release-017 remains partially
+  verified for external reasons (signing identities), see below.
 
 ## Session Log
 
@@ -113,10 +112,9 @@ automatically.
   c99bdb9, edcb076 (plus the earlier 7de9f13, af10234, 33e8033 from
   sessions 001/002).
 - Known risk or unresolved issue:
-  - pkg-016: the GitHub Actions matrix was NOT executed (no git remote
-    configured in this session); Windows/macOS sidecar binaries were not
-    built locally. Remaining step: push to GitHub, let CI produce the
-    three installers.
+  - pkg-016: DONE — CI matrix succeeded on GitHub Actions for the three
+    OSes (run 40694536137, installer artifacts uploaded); the workflow now
+    also publishes a GitHub Release when a v* tag is pushed.
   - release-017: signed installers and an actual update test require the
     maintainer's signing identities (Windows certificate, Apple Developer
     identity, Tauri updater key pair) and a published release + update
