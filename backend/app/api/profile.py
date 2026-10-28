@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 
 from app.api.deps import DbDep
 from app.db.models import Document, Education, Experience, Profile, Project
+from app.llm.registry import provider_supports_structured
 from app.services.parsing.extract import ParsingError, extract_text
 from app.services.profile_extraction import ExtractedProfile, extract_profile
 
@@ -220,11 +221,18 @@ async def import_cv(file: UploadFile, request: Request, session: DbDep) -> Extra
     provider = request.app.state.llm_provider()
     catalog = request.app.state.catalog
     model = request.app.state.get_task_model("profile_extraction")
+
+    from app.llm.budget import BudgetExceededError, ensure_budget
+
+    try:
+        ensure_budget(session)
+    except BudgetExceededError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
     try:
         extracted, completion = extract_profile(
             provider,
             model=model,
-            supports_structured=catalog.supports_structured_output(model),
+            supports_structured=provider_supports_structured(provider, catalog, model),
             cv_text=cv_text,
         )
     except Exception as error:  # noqa: BLE001 - provider errors surface as 502

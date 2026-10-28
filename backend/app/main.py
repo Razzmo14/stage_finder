@@ -12,7 +12,6 @@ from app.core.security import SessionTokenMiddleware
 from app.db.engine import make_engine
 from app.db.migrate import run_migrations
 from app.llm.catalog import ModelCatalog
-from app.llm.openrouter import OpenRouterProvider
 
 # Per-task model defaults; user assignment (ModelConfig) arrives with the
 # full model-settings feature.
@@ -90,7 +89,15 @@ def create_app(session_token: str | None = None) -> FastAPI:
     app = FastAPI(title="Stage Finder backend", version="0.1.0", lifespan=lifespan)
     app.state.session_token = session_token or get_settings().session_token
     app.state.catalog = ModelCatalog()
-    app.state.llm_provider = lambda: OpenRouterProvider(catalog=app.state.catalog)
+    def _llm_provider():
+        from app.llm.registry import get_active_provider
+        from app.services.settings import get_setting
+
+        with Session(app.state.db_engine, expire_on_commit=False) as session:
+            llm_settings = get_setting(session, "llm")
+        return get_active_provider(app.state, llm_settings, catalog=app.state.catalog)
+
+    app.state.llm_provider = _llm_provider
     app.state.get_task_model = lambda task: DEFAULT_TASK_MODELS[task]
     from app.services.job_sources.adzuna import AdzunaJobSource
     from app.services.job_sources.france_travail import FranceTravailJobSource

@@ -284,12 +284,18 @@
       "area": "llm",
       "title": "Direct Anthropic/OpenAI and local Ollama providers; budget cap",
       "user_visible_behavior": "The user can choose providers other than OpenRouter, including a fully local mode, and set a monthly budget cap.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "LLMProvider interface contract tests pass for all implementations with mocked endpoints.",
         "Budget cap blocks further generations with a clear message in tests."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: tests/test_providers.py: contract tests with mocked endpoints for Anthropic (x-api-key + anthropic-version headers, system separated from messages, tokens from usage; missing-key error), direct OpenAI (Bearer auth, response_format passthrough, native structured capability), Ollama (local, no key, /api/chat, streaming chunks).",
+        "2026-10-28: capability flags per provider (anthropic/ollama -> fallback path, openai -> native, openrouter -> live catalog); registry switches the active provider from settings with caching, unknown provider falls back to openrouter.",
+        "2026-10-28: budget cap: ensure_budget sums LLMUsage costs for the month; exceeding the configured budget blocks match/letter/profile generation with 422 'Monthly LLM budget exceeded ...' (end-to-end test); no budget configured = cap disabled; GET /api/v1/budget exposes spend.",
+        "2026-10-28: UI: provider selector (openrouter/anthropic/openai/ollama with local-only hint), Ollama base URL, monthly budget field with live spend.",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 118 passed, tsc+vite build, cargo check)."
+      ],
       "notes": "Phase 2."
     },
     {

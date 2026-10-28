@@ -8,6 +8,7 @@ from sqlmodel import select
 
 from app.api.deps import DbDep
 from app.db.models import MatchResult, Offer, Profile
+from app.llm.registry import provider_supports_structured
 from app.llm.usage import record_completion
 from app.services.matching.service import run_matching
 
@@ -65,6 +66,13 @@ def run_match(
     catalog = request.app.state.catalog
     model = request.app.state.get_task_model("matching")
 
+    from app.llm.budget import BudgetExceededError, ensure_budget
+
+    try:
+        ensure_budget(session)
+    except BudgetExceededError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
     def record_usage(completion) -> None:
         info = catalog.get(completion.model)
         cost = (
@@ -79,7 +87,7 @@ def run_match(
             session,
             provider,
             model=model,
-            supports_structured=catalog.supports_structured_output(model),
+            supports_structured=provider_supports_structured(provider, catalog, model),
             profile=profile,
             offers=offers,
             top_n=payload.top_n,

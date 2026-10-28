@@ -6,6 +6,7 @@ The API key lives in the OS keychain; only a masked form is ever returned.
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 from sqlmodel import Session
 
 from app.api.schemas import (
@@ -21,6 +22,7 @@ from app.llm.catalog import ModelCatalog
 from app.llm.openrouter import API_KEY_SECRET
 from app.llm.provider import CompletionRequest, LLMError, LLMProvider, messages
 from app.llm.usage import record_completion
+from app.services.settings import get_setting, set_setting
 
 router = APIRouter()
 
@@ -67,6 +69,41 @@ def save_llm_key(payload: LLMKeyIn) -> LLMSettingsOut:
 @router.delete("/settings/llm/key", status_code=204)
 def delete_llm_key() -> None:
     secrets.delete_secret(API_KEY_SECRET)
+
+
+class LLMConfigIn(BaseModel):
+    active_provider: str = "openrouter"
+    monthly_budget_usd: float | None = None
+    ollama_base_url: str = "http://localhost:11434"
+
+
+@router.get("/settings/llm-config", response_model=LLMConfigIn)
+def read_llm_config(session: DbDep) -> LLMConfigIn:
+    stored = get_setting(session, "llm")
+    return LLMConfigIn(
+        active_provider=stored.get("active_provider", "openrouter"),
+        monthly_budget_usd=stored.get("monthly_budget_usd"),
+        ollama_base_url=stored.get("ollama_base_url", "http://localhost:11434"),
+    )
+
+
+@router.put("/settings/llm-config", response_model=LLMConfigIn)
+def update_llm_config(payload: LLMConfigIn, request: Request, session: DbDep) -> LLMConfigIn:
+    if payload.active_provider not in ("openrouter", "anthropic", "openai", "ollama"):
+        raise HTTPException(status_code=422, detail=f"Unknown provider: {payload.active_provider}")
+    set_setting(session, "llm", payload.model_dump())
+    request.app.state.provider_cache = {}  # rebuild with the new provider
+    return read_llm_config(session)
+
+
+@router.get("/budget")
+def budget_status(session: DbDep) -> dict:
+    from app.llm.budget import monthly_budget, spent_this_month
+
+    return {
+        "spent_usd": spent_this_month(session),
+        "monthly_budget_usd": monthly_budget(session),
+    }
 
 
 @router.get("/models", response_model=list[ModelOut])

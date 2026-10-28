@@ -254,6 +254,81 @@ function SchedulerSection() {
   );
 }
 
+interface LlmConfigDto {
+  active_provider: string;
+  monthly_budget_usd: number | null;
+  ollama_base_url: string;
+}
+
+function LlmConfigSection() {
+  const [provider, setProvider] = useState("openrouter");
+  const [budget, setBudget] = useState<number | null>(null);
+  const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
+  const [message, setMessage] = useState<string | null>(null);
+
+  const budgetStatus = useQuery<{ spent_usd: number; monthly_budget_usd: number | null }>({
+    queryKey: ["budget"],
+    queryFn: () => api.get<{ spent_usd: number; monthly_budget_usd: number | null }>("/api/v1/budget"),
+  });
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.put<LlmConfigDto>("/api/v1/settings/llm-config", {
+        active_provider: provider,
+        monthly_budget_usd: budget,
+        ollama_base_url: ollamaUrl,
+      }),
+    onSuccess: () => setMessage("LLM provider settings saved."),
+    onError: (e: Error) => setMessage(e.message),
+  });
+
+  return (
+    <section className="rounded border border-neutral-200 bg-white p-4">
+      <h3 className="font-semibold">LLM provider &amp; budget</h3>
+      <div className="mt-2 flex items-center gap-3 text-sm">
+        <span>Provider:</span>
+        {(["openrouter", "anthropic", "openai", "ollama"] as const).map((name) => (
+          <label key={name} className="flex items-center gap-1">
+            <input type="radio" checked={provider === name} onChange={() => setProvider(name)} />
+            {name}
+            {name === "ollama" && <span className="text-xs text-neutral-400">(local-only mode)</span>}
+          </label>
+        ))}
+      </div>
+      {provider === "ollama" && (
+        <input
+          className="mt-2 w-72 rounded border border-neutral-300 px-2 py-1 text-sm"
+          value={ollamaUrl}
+          onChange={(e) => setOllamaUrl(e.target.value)}
+          placeholder="Ollama base URL"
+        />
+      )}
+      <div className="mt-2 flex items-center gap-2 text-sm">
+        <span>Monthly budget (USD, empty = no cap):</span>
+        <input
+          type="number"
+          className="w-24 rounded border border-neutral-300 px-2 py-1"
+          value={budget ?? ""}
+          onChange={(e) => setBudget(e.target.value === "" ? null : Number(e.target.value))}
+        />
+        {budgetStatus.data && (
+          <span className="text-xs text-neutral-500">
+            spent this month: {budgetStatus.data.spent_usd}
+          </span>
+        )}
+      </div>
+      <button
+        className="mt-2 rounded border border-neutral-300 px-3 py-1 text-sm disabled:opacity-50"
+        disabled={save.isPending}
+        onClick={() => save.mutate()}
+      >
+        Save
+      </button>
+      {message && <p className="mt-2 text-sm text-neutral-600">{message}</p>}
+    </section>
+  );
+}
+
 function LlmSection() {
   const queryClient = useQueryClient();
   const [keyInput, setKeyInput] = useState("");
@@ -406,6 +481,7 @@ export default function Settings() {
   return (
     <div className="max-w-3xl space-y-6">
       <h2 className="text-xl font-semibold">Settings</h2>
+      <LlmConfigSection />
       <LlmSection />
       <MailSection />
       <SchedulerSection />

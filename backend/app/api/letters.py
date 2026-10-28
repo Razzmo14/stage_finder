@@ -11,6 +11,7 @@ from sqlmodel import select
 from app.api.deps import DbDep
 from app.db.models import Application, EventLog, Experience, Offer, Profile
 from app.llm.provider import CompletionRequest, LLMProvider, messages
+from app.llm.registry import provider_supports_structured
 from app.llm.usage import record_completion
 from app.services.letter_generation.grounding import GroundingChecker
 from app.services.letter_generation.service import generate_letter
@@ -87,6 +88,13 @@ def generate(
     catalog = request.app.state.catalog
     model = request.app.state.get_task_model("letter_generation")
 
+    from app.llm.budget import BudgetExceededError, ensure_budget
+
+    try:
+        ensure_budget(session)
+    except BudgetExceededError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
     def record_usage(completion) -> None:
         info = catalog.get(completion.model)
         cost = (
@@ -100,7 +108,7 @@ def generate(
         letter, completion = generate_letter(
             provider,
             model=model,
-            supports_structured=catalog.supports_structured_output(model),
+            supports_structured=provider_supports_structured(provider, catalog, model),
             profile=profile,
             offer=offer,
             experiences=experiences,
