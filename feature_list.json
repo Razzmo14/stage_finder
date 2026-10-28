@@ -207,13 +207,17 @@
       "area": "applications",
       "title": "Application tracking view",
       "user_visible_behavior": "The user sees all applications by status with a timeline per application.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "List and Kanban views render from real Application data.",
         "Status transitions update timestamps and the timeline.",
         "Follow-up dates are shown."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: tests/test_track.py: list endpoint returns all statuses from real Application rows with follow-up dates; status filter works; a transition updates updated_at and appends the matching EventLog entry; timeline returns events in chronological order (edited, approved, rejected).",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 86 passed, tsc+vite build, cargo check).",
+        "2026-10-28: Applications screen (frontend): Kanban view with one column per status, list view with recipient/follow-up, per-application timeline detail, follow-up dates highlighted."
+      ],
       "notes": "Phase 1 step 10. Reminders and reply detection come in Phase 2."
     },
     {

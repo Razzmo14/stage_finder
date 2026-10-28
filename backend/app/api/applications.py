@@ -5,6 +5,8 @@ no endpoint may set a sent status. Sending exists only behind the mailer
 feature with its per-application confirmation.
 """
 
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
@@ -135,6 +137,7 @@ def edit_application(
         if value is not None:
             setattr(row, field_name, value)
             changed.append(field_name)
+    row.updated_at = datetime.now(UTC)
     session.add(row)
     session.commit()
     session.refresh(row)
@@ -147,6 +150,7 @@ def _set_status(session: Session, application_id: int, status: str, event: str) 
         raise HTTPException(status_code=422, detail=f"Unsupported status: {status}")
     row = _get_application(session, application_id)
     row.status = status
+    row.updated_at = datetime.now(UTC)
     session.add(row)
     session.commit()
     session.refresh(row)

@@ -6,6 +6,7 @@ import Overview from "./pages/Overview";
 import ProfilePage from "./pages/Profile";
 import SearchPage from "./pages/Search";
 import ReviewPage from "./pages/Review";
+import ApplicationsPage from "./pages/Applications";
 
 export type HealthState =
   | { kind: "checking" }
@@ -93,6 +94,7 @@ export default function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/review" element={<ReviewPage />} />
+            <Route path="/applications" element={<ApplicationsPage />} />
             <Route path="/settings" element={<Settings />} />
             <Route
               path="*"
