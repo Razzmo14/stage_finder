@@ -59,13 +59,20 @@
       "area": "llm",
       "title": "OpenRouter client: keychain key, live model catalog, capability-aware structured output, usage tracking",
       "user_visible_behavior": "The user can save an OpenRouter API key in Settings, browse the live model catalog, and run a test call; structured tasks work on models without native structured outputs via fallback.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Contract tests with a mocked OpenRouter endpoint pass for the structured-output fallback path (supported_parameters honored, JSON-mode retry with validation error feedback).",
         "API key is stored in the OS keychain and never appears in logs or DB (test asserts masked display).",
         "Token usage and cost per request are recorded in the EventLog."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: tests/test_llm.py: 14 contract tests, all external endpoints mocked (httpx.MockTransport for the catalog, FakeProvider for completions). Covers: native response_format path when supported_parameters includes response_format/structured_outputs; fallback with fenced JSON, invalid JSON, and validation-error retry feedback; give-up after 3 attempts.",
+        "2026-10-28: keychain tests: PUT /settings/llm/key stores the raw key in the (swappable) keychain backend, returns only a masked form; raw key bytes asserted absent from the SQLite file.",
+        "2026-10-28: usage tests: POST /settings/llm/test records an LLMUsage row (task, model, prompt/completion tokens, cost computed from catalog pricing); record_completion round-trip test.",
+        "2026-10-28: catalog tests: live-fetch + in-memory cache (1 HTTP call for repeated reads, refresh=1 forces a new fetch), capability flags exposed via GET /api/v1/models; unknown model 404.",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 30 passed, tsc+vite build, cargo check).",
+        "2026-10-28: Settings screen (frontend): save/remove key with masked display, searchable model catalog, per-model test call. tsc + vite build pass."
+      ],
       "notes": "Phase 1 step 3. See docs/decisions/0002-openrouter-integration.md."
     },
     {

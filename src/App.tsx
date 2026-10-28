@@ -1,20 +1,14 @@
 import { useEffect, useState } from "react";
+import { NavLink, Route, Routes } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
+import Settings from "./pages/Settings";
+import Overview from "./pages/Overview";
 
-type HealthState =
+export type HealthState =
   | { kind: "checking" }
   | { kind: "ok"; url: string }
   | { kind: "unreachable"; url: string; detail: string }
   | { kind: "outside-tauri" };
-
-const NAV_ITEMS = [
-  "Overview",
-  "Profile",
-  "Search & Offers",
-  "Review queue",
-  "Applications",
-  "Settings",
-] as const;
 
 async function checkHealth(): Promise<HealthState> {
   let backendUrl: string;
@@ -42,7 +36,7 @@ async function checkHealth(): Promise<HealthState> {
   }
 }
 
-function healthLabel(state: HealthState): string {
+export function healthLabel(state: HealthState): string {
   switch (state.kind) {
     case "checking":
       return "Sidecar: checking...";
@@ -54,6 +48,15 @@ function healthLabel(state: HealthState): string {
       return "Sidecar: n/a (running outside the Tauri shell)";
   }
 }
+
+const NAV = [
+  { to: "/", label: "Overview" },
+  { to: "/profile", label: "Profile" },
+  { to: "/search", label: "Search & Offers" },
+  { to: "/review", label: "Review queue" },
+  { to: "/applications", label: "Applications" },
+  { to: "/settings", label: "Settings" },
+];
 
 export default function App() {
   const [health, setHealth] = useState<HealthState>({ kind: "checking" });
@@ -67,23 +70,29 @@ export default function App() {
       <aside className="flex w-56 shrink-0 flex-col border-r border-neutral-200 bg-neutral-900 text-neutral-100">
         <h1 className="px-4 py-4 text-lg font-semibold">Stage Finder</h1>
         <nav className="flex flex-col">
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item}
-              className="px-4 py-2 text-left text-sm hover:bg-neutral-800"
-              disabled
+          {NAV.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `px-4 py-2 text-sm hover:bg-neutral-800 ${isActive ? "bg-neutral-800 font-medium" : ""}`
+              }
             >
-              {item}
-            </button>
+              {item.label}
+            </NavLink>
           ))}
         </nav>
       </aside>
       <div className="flex flex-1 flex-col">
         <main className="flex-1 overflow-y-auto p-6">
-          <p className="text-neutral-500">
-            Skeleton is running. Feature screens arrive with the matching feature in
-            feature_list.json.
-          </p>
+          <Routes>
+            <Route path="/" element={<Overview />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route
+              path="*"
+              element={<p className="text-neutral-500">This screen arrives with its feature.</p>}
+            />
+          </Routes>
         </main>
         <footer className="flex items-center gap-4 border-t border-neutral-200 bg-white px-4 py-2 text-xs text-neutral-600">
           <span>{healthLabel(health)}</span>

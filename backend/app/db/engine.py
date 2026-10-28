@@ -1,7 +1,9 @@
 """Database engine and session management."""
 
+from collections.abc import Iterator
 from pathlib import Path
 
+from fastapi import Request
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel, create_engine
@@ -41,4 +43,10 @@ def get_session(engine: Engine | None = None) -> Session:
     return Session(engine or get_engine(), expire_on_commit=False)
 
 
-__all__ = ["SQLModel", "get_engine", "get_session", "make_engine", "models"]
+def get_db(request: Request) -> Iterator[Session]:
+    """FastAPI dependency: one session per request, from the app engine."""
+    with Session(request.app.state.db_engine, expire_on_commit=False) as session:
+        yield session
+
+
+__all__ = ["SQLModel", "get_db", "get_engine", "get_session", "make_engine", "models"]

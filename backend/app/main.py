@@ -7,7 +7,10 @@ from fastapi import FastAPI
 
 from app.core.config import get_settings
 from app.core.security import SessionTokenMiddleware
+from app.db.engine import make_engine
 from app.db.migrate import run_migrations
+from app.llm.catalog import ModelCatalog
+from app.llm.openrouter import OpenRouterProvider
 
 
 def create_app(session_token: str | None = None) -> FastAPI:
@@ -17,15 +20,24 @@ def create_app(session_token: str | None = None) -> FastAPI:
     by programmatic launches), otherwise from the STAGE_FINDER_SESSION_TOKEN
     environment variable set by the Tauri core.
     """
+
     @asynccontextmanager
-    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings = get_settings()
         settings.data_dir.mkdir(parents=True, exist_ok=True)
         run_migrations(f"sqlite:///{settings.db_path}")
+        app.state.db_engine = make_engine(settings.db_path)
         yield
+        app.state.db_engine.dispose()
 
     app = FastAPI(title="Stage Finder backend", version="0.1.0", lifespan=lifespan)
     app.state.session_token = session_token or get_settings().session_token
+    app.state.catalog = ModelCatalog()
+    app.state.llm_provider = lambda: OpenRouterProvider(catalog=app.state.catalog)
+
+    from app.api.router import api_router
+
+    app.include_router(api_router)
     app.add_middleware(SessionTokenMiddleware)
 
     @app.get("/health")
