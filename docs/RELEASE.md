@@ -24,6 +24,10 @@ npm run tauri build
 The PyInstaller sidecar is bundled via `externalBin`
 (`src-tauri/tauri.conf.json`) and installed next to the main executable.
 
+> Note: `bundle.createUpdaterArtifacts` is set to `false` until the
+> updater signing key exists; flip it to `true` when the keys are
+> generated, otherwise `tauri build` fails on the missing private key.
+
 ## 3. Signing keys (TODO)
 
 Tauri v2 uses minisign-style keys for updater artifacts:
