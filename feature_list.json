@@ -226,12 +226,16 @@
       "area": "search",
       "title": "Additional job sources: Adzuna and Jooble",
       "user_visible_behavior": "Searches run across Adzuna and Jooble in addition to France Travail, with cross-source deduplication.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Contract tests with recorded fixtures pass for both sources.",
         "The same offer found on two sources appears once."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: tests/test_sources.py: Adzuna contract test over recorded fixture (normalization: company/location nested objects, salary range, redirect_url; app_id/app_key sent as query params; what/where/distance params mapped; 1 req/s rate limit); Jooble contract test (POST JSON, API key in URL path, link/company/type normalization); missing-keychain-credential errors for both.",
+        "2026-10-28: cross-source dedup: the same offer (same title/company) found on Adzuna then Jooble results in one Offer row kept once; the second ingest reports a duplicate.",
+        "2026-10-28: sources registered in app.state.job_sources, so POST /search/run runs any enabled source in criteria.sources; ./init.sh full run passed (ruff, pytest 91 passed, tsc+vite build, cargo check)."
+      ],
       "notes": "Phase 2."
     },
     {

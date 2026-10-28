@@ -45,10 +45,16 @@ def create_app(session_token: str | None = None) -> FastAPI:
     app.state.catalog = ModelCatalog()
     app.state.llm_provider = lambda: OpenRouterProvider(catalog=app.state.catalog)
     app.state.get_task_model = lambda task: DEFAULT_TASK_MODELS[task]
+    from app.services.job_sources.adzuna import AdzunaJobSource
     from app.services.job_sources.france_travail import FranceTravailJobSource
+    from app.services.job_sources.jooble import JoobleJobSource
     from app.services.matching.embeddings import HashingEmbedder
 
-    app.state.job_sources = {"france_travail": FranceTravailJobSource()}
+    app.state.job_sources = {
+        "france_travail": FranceTravailJobSource(),
+        "adzuna": AdzunaJobSource(),
+        "jooble": JoobleJobSource(),
+    }
     app.state.embedder = HashingEmbedder()
     from app.services.letter_generation.grounding import HeuristicGroundingChecker
 
