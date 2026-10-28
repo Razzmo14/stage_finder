@@ -57,11 +57,19 @@ def app(tmp_path, monkeypatch):
     config.get_settings.cache_clear()
     secrets.use_backend(secrets.MemoryBackend())
     secrets.set_secret(CLIENT_ID_SECRET, "google-client-id")
+    from app.services.mailer.graph import GraphClient
+    from app.services.mailer.smtp_imap import SmtpImapClient
+
     application = create_app(session_token=TOKEN)
     application.state.gmail_calls: list = []
     application.state.gmail_client = GmailClient(
         transport=gmail_mock_transport(application.state.gmail_calls)
     )
+    application.state.mail_clients = {
+        "gmail": application.state.gmail_client,
+        "graph": GraphClient(transport=gmail_mock_transport(application.state.gmail_calls)),
+        "smtp": SmtpImapClient(),
+    }
     yield application
     config.get_settings.cache_clear()
     secrets.use_backend(secrets.KeyringBackend())

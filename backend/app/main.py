@@ -60,8 +60,15 @@ def create_app(session_token: str | None = None) -> FastAPI:
 
     app.state.grounding_checker = HeuristicGroundingChecker()
     from app.services.mailer.gmail import GmailClient
+    from app.services.mailer.graph import GraphClient
+    from app.services.mailer.smtp_imap import SmtpImapClient
 
     app.state.gmail_client = GmailClient()
+    app.state.mail_clients = {
+        "gmail": app.state.gmail_client,
+        "graph": GraphClient(),
+        "smtp": SmtpImapClient(),
+    }
 
     app.include_router(api_router)
     app.add_middleware(SessionTokenMiddleware)

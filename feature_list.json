@@ -244,12 +244,17 @@
       "area": "email",
       "title": "Outlook (Microsoft Graph) and SMTP/IMAP fallback",
       "user_visible_behavior": "The user can connect Outlook or a generic SMTP/IMAP mailbox.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Graph OAuth2 (PKCE) flow works with mocked endpoints.",
         "SMTP fallback creates drafts or sends per settings, with rate limiting."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: tests/test_mail_fallback.py: Graph PKCE connect flow against mocked endpoints (authorize URL with S256 challenge, code_verifier posted at exchange, tokens keychain-only, forged state rejected); Graph draft via POST /me/messages and send via /me/sendMail with Bearer token (mocked).",
+        "2026-10-28: SMTP/IMAP: send with STARTTLS+login and retry with exponential backoff (2 transient failures then success), hard failure after 3 attempts; drafts via IMAP APPEND to the Drafts mailbox; missing keychain credentials produce a clear error; deliver() routes to the account selected in settings (smtp account end-to-end test).",
+        "2026-10-28: mail settings now carry the active account (gmail|graph|smtp) with per-account connected flags in /mail/status; UI account selector.",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 100 passed, tsc+vite build, cargo check)."
+      ],
       "notes": "Phase 2."
     },
     {

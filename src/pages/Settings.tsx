@@ -9,6 +9,9 @@ import {
 
 interface MailStatusDto {
   gmail_connected: boolean;
+  graph_connected: boolean;
+  smtp_connected: boolean;
+  account: string;
   allow_direct_send: boolean;
   daily_send_limit: number;
   sends_today: number;
@@ -17,6 +20,7 @@ interface MailStatusDto {
 
 function MailSection() {
   const queryClient = useQueryClient();
+  const [account, setAccount] = useState("gmail");
   const [allowSend, setAllowSend] = useState(false);
   const [limit, setLimit] = useState(20);
   const [sender, setSender] = useState("");
@@ -36,6 +40,7 @@ function MailSection() {
         allow_direct_send: allowSend,
         daily_send_limit: limit,
         sender_email: sender,
+        account,
       }),
     onSuccess: (data) => {
       setMessage("Mail settings saved.");
@@ -109,6 +114,24 @@ function MailSection() {
       ) : null}
 
       <h4 className="mt-4 font-medium">Delivery settings</h4>
+      <div className="mt-2 flex items-center gap-2 text-sm">
+        <span>Active account:</span>
+        {(["gmail", "graph", "smtp"] as const).map((name) => (
+          <label key={name} className="flex items-center gap-1">
+            <input
+              type="radio"
+              checked={account === name}
+              onChange={() => setAccount(name)}
+            />
+            {name}
+          </label>
+        ))}
+      </div>
+      <p className="mt-1 text-xs text-neutral-500">
+        Outlook and generic SMTP/IMAP accounts are configured through the
+        keychain (see README); connect Gmail above or select the account
+        your administrator configured.
+      </p>
       <label className="mt-2 flex items-center gap-2 text-sm">
         <input
           type="checkbox"
