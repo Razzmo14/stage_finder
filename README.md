@@ -88,12 +88,16 @@ launch the app at the end.
 ## Build (release)
 
 ```sh
-npm run tauri build
+./scripts/build-sidecar.sh          # PyInstaller sidecar -> src-tauri/binaries/<name>-<triple>
+npm run tauri build                 # bundles the sidecar as externalBin
 ```
 
-Note: release packaging freezes the Python sidecar with PyInstaller into an
-`externalBin` (feature `pkg-016`); until then `tauri build` produces a shell
-that spawns the sidecar via `uv` from the project directory.
+- In dev (`npm run tauri dev`) the core spawns the backend via `uv run`.
+- In release builds it spawns the bundled PyInstaller sidecar installed
+  next to the main executable (one binary per OS/architecture, declared
+  via `externalBin` in `src-tauri/tauri.conf.json`).
+- CI (`.github/workflows/build.yml`) builds installers for Linux, Windows
+  and macOS on push.
 
 ## Layout
 

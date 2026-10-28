@@ -14,3 +14,11 @@ backend/.venv/
 .env
 *.db
 *.db-journal
+
+# PyInstaller
+backend/build/
+backend/dist/
+backend/run_sidecar.egg-info/
+
+# Sidecar binaries are built per-platform, never committed
+src-tauri/binaries/

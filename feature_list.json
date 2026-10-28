@@ -322,12 +322,18 @@
       "area": "infrastructure",
       "title": "Sidecar packaging (PyInstaller externalBin) and CI for Windows/macOS/Linux",
       "user_visible_behavior": "Installable builds are produced for the three OSes from CI.",
-      "status": "not_started",
+      "status": "in_progress",
       "verification": [
         "PyInstaller produces one sidecar binary per OS/architecture, declared in tauri.conf.json.",
         "GitHub Actions matrix build produces installers for all three OSes."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: PyInstaller spec (backend/pyinstaller.spec, onefile) builds stage-finder-backend; boot-verified on this machine: 401 without the session token, 200 with it, Alembic migrations applied in frozen mode (14 tables incl. appsetting; alembic files bundled as data; migrate.py resolves paths for frozen builds).",
+        "2026-10-28: scripts/build-sidecar.sh places the binary at src-tauri/binaries/stage-finder-backend-x86_64-unknown-linux-gnu (built and present); externalBin declared in tauri.conf.json; the Rust core spawns the bundled sidecar next to the executable in release builds (dev keeps the uv path); cargo check passes with both branches.",
+        "2026-10-28: .github/workflows/build.yml authored: matrix ubuntu/windows/macos, per-triple sidecar build, baseline verification, tauri build, artifact upload.",
+        "2026-10-28: NOT YET VERIFIED: the GitHub Actions matrix has not been executed (the repo has no remote configured in this session); Windows and macOS sidecar binaries were not built locally. Remaining step: push to GitHub and let CI produce installers for the three OSes.",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 118 passed, tsc+vite build, cargo check)."
+      ],
       "notes": "Phase 3."
     },
     {

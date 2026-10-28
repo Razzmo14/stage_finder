@@ -23,6 +23,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "httpx>=0.27",
+    "pyinstaller>=6.22.3",
     "pytest>=8.2",
     "ruff>=0.5",
 ]

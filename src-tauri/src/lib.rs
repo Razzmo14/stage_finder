@@ -47,16 +47,30 @@ fn project_root() -> &'static Path {
 }
 
 fn spawn_backend(port: u16, token: &str) -> io::Result<Child> {
-    let backend_dir = project_root().join("backend");
-    Command::new("uv")
-        .arg("run")
-        .arg("python")
-        .arg("-m")
-        .arg("app")
-        .current_dir(&backend_dir)
-        .env("STAGE_FINDER_PORT", port.to_string())
-        .env("STAGE_FINDER_SESSION_TOKEN", token)
-        .spawn()
+    if cfg!(debug_assertions) {
+        // Dev: run the sidecar from the checkout via uv.
+        let backend_dir = project_root().join("backend");
+        Command::new("uv")
+            .arg("run")
+            .arg("python")
+            .arg("-m")
+            .arg("app")
+            .current_dir(&backend_dir)
+            .env("STAGE_FINDER_PORT", port.to_string())
+            .env("STAGE_FINDER_SESSION_TOKEN", token)
+            .spawn()
+    } else {
+        // Release: run the bundled PyInstaller sidecar (externalBin),
+        // installed next to the main executable without the target triple.
+        let exe_dir = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|d| d.to_path_buf()))
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "cannot resolve exe dir"))?;
+        Command::new(exe_dir.join("stage-finder-backend"))
+            .env("STAGE_FINDER_PORT", port.to_string())
+            .env("STAGE_FINDER_SESSION_TOKEN", token)
+            .spawn()
+    }
 }
 
 fn wait_for_backend(port: u16, timeout: Duration) -> bool {
