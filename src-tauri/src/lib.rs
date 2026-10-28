@@ -62,11 +62,18 @@ fn spawn_backend(port: u16, token: &str) -> io::Result<Child> {
     } else {
         // Release: run the bundled PyInstaller sidecar (externalBin),
         // installed next to the main executable without the target triple.
+        // Windows requires the explicit .exe suffix: CreateProcess does
+        // not append it when the program string contains a path.
         let exe_dir = std::env::current_exe()
             .ok()
             .and_then(|p| p.parent().map(|d| d.to_path_buf()))
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "cannot resolve exe dir"))?;
-        Command::new(exe_dir.join("stage-finder-backend"))
+        let sidecar_name = if cfg!(windows) {
+            "stage-finder-backend.exe"
+        } else {
+            "stage-finder-backend"
+        };
+        Command::new(exe_dir.join(sidecar_name))
             .env("STAGE_FINDER_PORT", port.to_string())
             .env("STAGE_FINDER_SESSION_TOKEN", token)
             .spawn()

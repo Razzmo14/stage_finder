@@ -62,6 +62,32 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
 
+      - name: Smoke test the frozen sidecar
+        shell: bash
+        run: |
+          set -e
+          BINARY="backend/dist/stage-finder-backend"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then BINARY="$BINARY.exe"; fi
+          export STAGE_FINDER_PORT=18971
+          export STAGE_FINDER_SESSION_TOKEN=ci-smoke-token
+          export STAGE_FINDER_DATA_DIR="$RUNNER_TEMP/stage-finder-ci-data"
+          mkdir -p "$STAGE_FINDER_DATA_DIR"
+          "$BINARY" &
+          SIDECAR_PID=$!
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:18971/health || true)
+            if [[ "$code" == "401" ]]; then break; fi
+            sleep 1
+          done
+          unauthorized=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:18971/health)
+          authorized=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ci-smoke-token" http://127.0.0.1:18971/health)
+          echo "health without token: $unauthorized (want 401)"
+          echo "health with token: $authorized (want 200)"
+          if [[ "$unauthorized" != "401" || "$authorized" != "200" ]]; then
+            echo "Frozen sidecar smoke test FAILED"; kill $SIDECAR_PID 2>/dev/null || true; exit 1
+          fi
+          if [[ "$RUNNER_OS" == "Windows" ]]; then taskkill //F //IM stage-finder-backend.exe || true; else kill $SIDECAR_PID 2>/dev/null || true; fi
+
       - name: Package portable build (Windows)
         if: runner.os == 'Windows'
         shell: pwsh

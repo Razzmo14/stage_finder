@@ -112,9 +112,14 @@ automatically.
   c99bdb9, edcb076 (plus the earlier 7de9f13, af10234, 33e8033 from
   sessions 001/002).
 - Known risk or unresolved issue:
-  - pkg-016: DONE — CI matrix succeeded on GitHub Actions for the three
-    OSes (run 40694536137, installer artifacts uploaded); the workflow now
-    also publishes a GitHub Release when a v* tag is pushed.
+  - pkg-016: CI matrix succeeded on GitHub Actions for the three OSes;
+    Releases published on tags. A Windows runtime bug found by the user
+    (Failed to fetch) exposed that nothing had LAUNCHED the app on
+    Windows: the release spawn missed the .exe suffix (CreateProcess
+    does not append it for full paths). Fixed in lib.rs; CI now smoke
+    tests the frozen sidecar (401/200) on all three OSes. End-to-end
+    launch on real Windows/macOS desktops remains to be confirmed by the
+    user with the v0.1.2 installers.
   - release-017: signed installers and an actual update test require the
     maintainer's signing identities (Windows certificate, Apple Developer
     identity, Tauri updater key pair) and a published release + update
