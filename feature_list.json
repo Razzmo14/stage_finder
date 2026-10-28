@@ -122,13 +122,20 @@
       "area": "matching",
       "title": "Matching: embedding similarity + LLM re-ranking",
       "user_visible_behavior": "Offers are scored 0-100 against the profile, with rationale, matched and missing skills, and can be sorted and filtered by score.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Unit tests pass for stage 1 (embedding similarity) and stage 2 (LLM scoring with mocked provider).",
         "MatchResult rows store the model used.",
         "Offers list is sorted by score."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: tests/test_match.py stage 1: deterministic HashingEmbedder (words + bigrams, L2-normalized), cosine similarity ranks the relevant offer first, embedding stored on the offer with the model name, stored embeddings reused (no re-embed).",
+        "2026-10-28: stage 2: LLM re-ranking with mocked provider returns validated MatchJudgement (0-100 score, rationale, matched/missing skills, red flags); score bounds enforced by the schema (150 rejected).",
+        "2026-10-28: run_matching stores MatchResult rows with the model used and records LLMUsage rows (task=matching); POST /api/v1/match/run works end to end; GET /api/v1/offers?sort=score returns matched offers by score desc with unmatched last.",
+        "2026-10-28: sqlite-vec installed and verified loadable; embeddings stored as blobs on the Offer row (knn via in-memory cosine at current scale).",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 55 passed, tsc+vite build, cargo check).",
+        "2026-10-28: Search screen shows scores, rationale, missing skills and red flags; Run matching button."
+      ],
       "notes": "Phase 1 step 6. Embedding provider independent from chat model."
     },
     {

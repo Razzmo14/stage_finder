@@ -26,6 +26,14 @@ interface OfferDto {
   published_at: string;
   seen: boolean;
   ignored: boolean;
+  match: {
+    score: number;
+    rationale: string;
+    matched_skills: string[];
+    missing_skills: string[];
+    red_flags: string[];
+    model: string;
+  } | null;
 }
 
 const EMPTY_CRITERIA = {
@@ -48,7 +56,16 @@ export default function SearchPage() {
 
   const offers = useQuery<OfferDto[]>({
     queryKey: ["offers"],
-    queryFn: () => api.get<OfferDto[]>("/api/v1/offers"),
+    queryFn: () => api.get<OfferDto[]>("/api/v1/offers?sort=score"),
+  });
+
+  const runMatching = useMutation({
+    mutationFn: () => api.post<unknown[]>("/api/v1/match/run", { top_n: 10 }),
+    onSuccess: () => {
+      setMessage("Matching done.");
+      queryClient.invalidateQueries({ queryKey: ["offers"] });
+    },
+    onError: (e: Error) => setMessage(e.message),
   });
 
   const createCriteria = useMutation({
@@ -151,7 +168,16 @@ export default function SearchPage() {
       </div>
 
       <div className="rounded border border-neutral-200 bg-white p-4">
-        <h3 className="font-semibold">Offers ({offers.data?.length ?? 0})</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Offers ({offers.data?.length ?? 0}), sorted by match score</h3>
+          <button
+            className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-50"
+            disabled={runMatching.isPending}
+            onClick={() => runMatching.mutate()}
+          >
+            {runMatching.isPending ? "Matching..." : "Run matching (top 10)"}
+          </button>
+        </div>
         <ul className="mt-2 divide-y divide-neutral-100">
           {(offers.data ?? []).map((o) => (
             <li key={o.id} className="flex items-center justify-between py-2 text-sm">
@@ -162,6 +188,17 @@ export default function SearchPage() {
                 <span className="text-neutral-600">
                   — {o.company} · {o.location} · {o.contract_type || "?"} · via {o.source}
                 </span>
+                {o.match && (
+                  <div className="text-xs text-neutral-500">
+                    Score {o.match.score}/100 · {o.match.rationale}
+                    {o.match.missing_skills.length > 0 && (
+                      <span> · missing: {o.match.missing_skills.join(", ")}</span>
+                    )}
+                    {o.match.red_flags.length > 0 && (
+                      <span className="text-red-600"> · red flags: {o.match.red_flags.join(", ")}</span>
+                    )}
+                  </div>
+                )}
               </div>
               <button
                 className="rounded border border-neutral-300 px-2 py-0.5 text-xs"

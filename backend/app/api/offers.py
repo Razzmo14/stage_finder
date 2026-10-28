@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
-from sqlmodel import select
+from sqlmodel import Session, select
 
 from app.api.deps import DbDep
 from app.db.models import Offer, SearchCriteria
@@ -12,6 +12,15 @@ from app.services.job_sources.base import JobSource, NormalizedOffer, SearchPara
 from app.services.offers import ingest_offers
 
 router = APIRouter()
+
+
+class MatchSummary(BaseModel):
+    score: int
+    rationale: str
+    matched_skills: list[str]
+    missing_skills: list[str]
+    red_flags: list[str]
+    model: str
 
 
 class OfferOut(BaseModel):
@@ -30,6 +39,7 @@ class OfferOut(BaseModel):
     seen: bool
     ignored: bool
     dedup_hash: str
+    match: MatchSummary | None = None
 
 
 class OfferPatch(BaseModel):
@@ -53,7 +63,7 @@ def get_sources(request: Request) -> dict[str, JobSource]:
 SourcesDep = Annotated[dict[str, JobSource], Depends(get_sources)]
 
 
-def _to_out(row: Offer) -> OfferOut:
+def _to_out(row: Offer, match: "MatchSummary | None" = None) -> OfferOut:
     return OfferOut(
         id=row.id,
         source=row.source,
@@ -70,6 +80,27 @@ def _to_out(row: Offer) -> OfferOut:
         seen=row.seen,
         ignored=row.ignored,
         dedup_hash=row.dedup_hash,
+        match=match,
+    )
+
+
+def _latest_match_summary(session: Session, offer_id: int) -> MatchSummary | None:
+    from app.db.models import MatchResult
+
+    match = session.exec(
+        select(MatchResult)
+        .where(MatchResult.offer_id == offer_id)
+        .order_by(MatchResult.id.desc())  # type: ignore[union-attr]
+    ).first()
+    if match is None:
+        return None
+    return MatchSummary(
+        score=match.score,
+        rationale=match.rationale,
+        matched_skills=match.matched_skills,
+        missing_skills=match.missing_skills,
+        red_flags=match.red_flags,
+        model=match.model,
     )
 
 
@@ -79,6 +110,7 @@ def list_offers(
     source: str | None = None,
     include_ignored: bool = False,
     include_seen: bool = True,
+    sort: str | None = None,
     limit: int = 100,
 ) -> list[OfferOut]:
     statement = select(Offer).order_by(Offer.fetched_at.desc())  # type: ignore[union-attr]
@@ -89,7 +121,11 @@ def list_offers(
     if not include_seen:
         statement = statement.where(Offer.seen.is_(False))  # type: ignore[union-attr]
     rows = session.exec(statement.limit(limit)).all()
-    return [_to_out(r) for r in rows]
+    out = [_to_out(r, _latest_match_summary(session, r.id)) for r in rows]
+    if sort == "score":
+        # Offers with a match sorted by score desc; unmatched last.
+        out.sort(key=lambda o: (o.match is not None, o.match.score if o.match else 0), reverse=True)
+    return out
 
 
 @router.get("/offers/{offer_id}", response_model=OfferOut)
@@ -97,7 +133,7 @@ def read_offer(offer_id: int, session: DbDep) -> OfferOut:
     row = session.get(Offer, offer_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Offer not found")
-    return _to_out(row)
+    return _to_out(row, _latest_match_summary(session, row.id))
 
 
 @router.patch("/offers/{offer_id}", response_model=OfferOut)
