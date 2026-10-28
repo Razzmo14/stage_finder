@@ -101,13 +101,19 @@
       "area": "search",
       "title": "France Travail job source, saved criteria, offer list",
       "user_visible_behavior": "The user can save search criteria, run a search against France Travail, and see normalized deduplicated offers.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Contract tests for the France Travail source pass with recorded fixtures.",
         "Duplicate offers across runs are deduplicated (hash check in tests).",
         "Saved criteria persist and rerun correctly."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: tests/test_search.py: France Travail contract test with recorded-style fixtures over httpx.MockTransport (token endpoint + /recherche response): normalization to NormalizedOffer, Bearer on search call, params mapping (motsCles, distance), hash computed; missing keychain credentials raise a clear error.",
+        "2026-10-28: dedup tests: exact hash duplicate, source+id duplicate, fuzzy duplicate (punctuation-insensitive title/company match, ratio >= 0.92), distinct offers all kept.",
+        "2026-10-28: criteria API CRUD + rerun test: create/read/update/delete criteria; first run ingests 2 new, rerun reports 2 duplicates and offers persist; offer ignore flag filters the list.",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 48 passed, tsc+vite build, cargo check).",
+        "2026-10-28: Search & Offers screen (frontend): criteria creation, run-search with new/duplicate counts, offers list with ignore toggle."
+      ],
       "notes": "Phase 1 step 5. Adzuna and Jooble come in Phase 2 behind the same JobSource interface."
     },
     {

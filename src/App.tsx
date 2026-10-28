@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import Settings from "./pages/Settings";
 import Overview from "./pages/Overview";
 import ProfilePage from "./pages/Profile";
+import SearchPage from "./pages/Search";
 
 export type HealthState =
   | { kind: "checking" }
@@ -89,6 +90,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Overview />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/search" element={<SearchPage />} />
             <Route path="/settings" element={<Settings />} />
             <Route
               path="*"

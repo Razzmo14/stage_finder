@@ -45,6 +45,9 @@ def create_app(session_token: str | None = None) -> FastAPI:
     app.state.catalog = ModelCatalog()
     app.state.llm_provider = lambda: OpenRouterProvider(catalog=app.state.catalog)
     app.state.get_task_model = lambda task: DEFAULT_TASK_MODELS[task]
+    from app.services.job_sources.france_travail import FranceTravailJobSource
+
+    app.state.job_sources = {"france_travail": FranceTravailJobSource()}
 
     app.include_router(api_router)
     app.add_middleware(SessionTokenMiddleware)
