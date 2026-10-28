@@ -334,7 +334,7 @@
         "2026-10-28: .github/workflows/build.yml authored: matrix ubuntu/windows/macos, per-triple sidecar build, baseline verification, tauri build, artifact upload.",
         "2026-10-28: ./init.sh full run passed (ruff, pytest 118 passed, tsc+vite build, cargo check).",
         "2026-10-28: CI executed on GitHub Actions (run 40694536137, repo Razzmo14/stage_finder): all three matrix jobs succeeded (ubuntu x86_64-unknown-linux-gnu, windows x86_64-pc-windows-msvc, macos aarch64-apple-darwin) with installer artifacts uploaded (Linux 256.8 MB, Windows 110.1 MB, macOS 108.9 MB).",
-        "2026-10-28: workflow extended to publish a GitHub Release with the installers (deb/rpm/AppImage/msi/exe/dmg) when a v* tag is pushed (release job, download-artifact + softprops/action-gh-release)."
+        "2026-10-28: release job fixed (recursive globs; the first attempt attached 0 assets because upload-artifact stores bundle files in subdirectories) and now also ships a portable Windows zip (stage-finder.exe + stage-finder-backend.exe, unzip and double-click, no install)."
       ],
       "notes": "Phase 3."
     },

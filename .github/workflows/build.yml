@@ -62,6 +62,22 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
 
+      - name: Package portable build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force portable | Out-Null
+          Copy-Item "src-tauri\target\release\stage-finder.exe" portable\
+          Copy-Item "src-tauri\binaries\stage-finder-backend-x86_64-pc-windows-msvc.exe" "portable\stage-finder-backend.exe"
+          Compress-Archive -Path portable\* -DestinationPath StageFinder-portable-win64.zip
+
+      - name: Upload portable artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-finder-portable-win64
+          path: StageFinder-portable-win64.zip
+
       - uses: actions/upload-artifact@v4
         with:
           name: stage-finder-${{ matrix.triple }}
@@ -96,13 +112,14 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/*.dmg
-            artifacts/*.msi
-            artifacts/*.exe
-            artifacts/*.deb
-            artifacts/*.rpm
-            artifacts/*.AppImage
+            artifacts/**/*.dmg
+            artifacts/**/*.msi
+            artifacts/**/*.exe
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
+            artifacts/**/*.AppImage
+            artifacts/**/*.zip
           generate_release_notes: true
-          fail_on_unmatched_files: false
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
