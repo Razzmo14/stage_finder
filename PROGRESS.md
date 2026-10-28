@@ -14,85 +14,147 @@ automatically.
 ## Current Verified State
 
 - Repository root: /home/razzmo/projects/stage_finder
-- Standard startup path: ./init.sh (full verification: uv sync, npm install,
-  ruff, pytest, npm run build, cargo check)
+- Standard startup path: ./init.sh (uv sync, npm install, ruff, pytest,
+  tsc+vite build, cargo check)
 - Standard verification path: ./init.sh (same; SKIP_CARGO_CHECK=1 skips the
   Rust core)
-- Current highest-priority unfinished feature: llm-003 (OpenRouter client:
-  keychain key, live model catalog, capability-aware structured output,
-  usage tracking)
-- Current blocker: none
+- Features skel-001 through i18n-015 (Phase 1 and Phase 2): passing with
+  evidence in feature_list.json. pkg-016 and release-017: in_progress —
+  see the blockers section below.
+- Current blocker: none for local work. Two features remain partially
+  verified for external reasons (signing identities / CI execution), see
+  below.
 
 ## Session Log
+
+### Session 003
+
+- Date: 2026-10-28
+- Goal: "Fais l'app en entier" — implement the whole app from feature_list
+  in priority order.
+- Completed (each feature verified with mocked external endpoints, evidence
+  in feature_list.json, one commit per feature):
+  - llm-003: LLMProvider protocol, OpenRouter provider (OpenAI SDK at
+    openrouter base_url, data_collection=deny), live model catalog with
+    cache and capability detection, capability-aware structured output
+    (native response_format / JSON fallback with validation-error retry),
+    usage+cost recording in LLMUsage; keychain-only API key with masked
+    display. Settings screen (key, catalog, test call).
+  - profile-004: profile CRUD (identity, skills, experiences, education,
+    projects, base letter + style rules), CV import PDF (pdfplumber) /
+    DOCX (python-docx), LLM extraction into a structured draft the user
+    confirms; parsing tested with a hand-built valid PDF fixture.
+  - search-005: JobSource interface; France Travail source (OAuth2 client
+    credentials, recorded-fixture contract tests); ingestion with hash +
+    source-id + fuzzy dedup; criteria CRUD; POST /search/run; offers API.
+    Search & Offers screen.
+  - match-006: pluggable embeddings (local deterministic HashingEmbedder
+    default, API embedder), stage-1 cosine ranking with stored embeddings
+    + model name, stage-2 LLM structured MatchJudgement (score/rationale/
+    matched/missing/red flags); offers sorted by score; sqlite-vec
+    installed and loadable.
+  - letter-007: LetterOutput structured schema (letter, subject, body,
+    claims) with anti-invention prompt; letter language follows the offer
+    (fr/en detection); grounding check behind a protocol (heuristic default
+    + LLM verifier) flagging unsupported claims; POST /letters/generate
+    creates an Application in pending_review.
+  - review-008: review API (queue, inline edits that never change status,
+    approve/reject/save-for-later with EventLog; HARD RULE test: no route
+    can send, no sent status reachable); streamed regeneration
+    (LLMProvider.stream, text/plain chunks, persisted + logged); Review
+    screen: side-by-side, word-level diff, flagged claims highlighted,
+    streamed regeneration, approve/reject/save.
+  - mail-009: Gmail OAuth2 (PKCE, S256, keychain-only tokens), deliver()
+    as the single mailbox gateway: drafts by default, direct send only
+    with the opt-in setting AND explicit confirmation, daily send limit;
+    new appsetting table (migration b2f000000002); Settings mail section
+    + final confirmation dialog in the Review screen.
+  - track-010: applications list/kanban/timeline; transitions update
+    updated_at + EventLog; follow-up dates displayed. Applications screen.
+  - sources-011: Adzuna + Jooble sources behind the JobSource interface,
+    contract tests with recorded fixtures, cross-source dedup test.
+  - mail-012: Microsoft Graph (PKCE, drafts via /me/messages, send via
+    /me/sendMail) and SMTP/IMAP fallback (STARTTLS + retry with backoff,
+    drafts via IMAP APPEND to Drafts); account selection in settings and
+    deliver(); UI account selector.
+  - sched-013: APScheduler started at startup, stable job IDs
+    (idempotent registration across restarts), periodic searches over
+    enabled criteria, due follow-ups with idempotent per-day
+    notifications; HARD RULE test: the scheduler modules reference
+    neither the mailer nor deliver(); UI banner + web Notification API;
+    settings helpers moved to app/services/settings.py.
+  - providers-014: Anthropic (httpx Messages API), direct OpenAI (native
+    structured), Ollama (local-only, streaming); provider registry with
+    settings-based switching + capability flags; monthly budget cap
+    blocking generations with a clear message; UI provider selector and
+    budget field.
+  - i18n-015: i18next FR/EN, 164 aligned keys, all screens migrated to
+    t(), sidebar language switcher persisted in localStorage; audit shows
+    no remaining hardcoded user-facing strings.
+  - pkg-016 (in_progress): PyInstaller onefile sidecar (alembic + pdfminer
+    data, sqlite_vec native lib), frozen-mode migration support,
+    boot-verified (401/200 + migrations inside the binary);
+    scripts/build-sidecar.sh; externalBin declared in tauri.conf.json;
+    release spawn implemented in the Rust core; CI matrix workflow
+    authored.
+  - release-017 (in_progress): docs/USER.md (full user guide),
+    docs/RELEASE.md (signing + auto-update steps), updater scaffolding in
+    tauri.conf.json (inactive, placeholder keys).
+- Verification run (session 003, final): ./init.sh full run passed
+  (ruff clean, pytest 118 passed, tsc + vite build, cargo check); the
+  real app launched via `npm run tauri dev`: window opened, sidecar
+  spawned, migration b2f000000002 applied, supervisor reported
+  "sidecar healthy on 127.0.0.1:46801". The PyInstaller sidecar binary
+  was also boot-verified standalone.
+- Evidence captured: feature_list.json (evidence arrays per feature,
+  118 tests), this file, session-handoff.md.
+- Commits: 23ba793, 2104e7a, 7a9d88e, 737ec40, 41672d6, 109e5ac,
+  61c599d, d8ab041, f88d848, ab7a675, d2cf5a9, b32760e, 84e81b5,
+  c99bdb9, edcb076 (plus the earlier 7de9f13, af10234, 33e8033 from
+  sessions 001/002).
+- Known risk or unresolved issue:
+  - pkg-016: the GitHub Actions matrix was NOT executed (no git remote
+    configured in this session); Windows/macOS sidecar binaries were not
+    built locally. Remaining step: push to GitHub, let CI produce the
+    three installers.
+  - release-017: signed installers and an actual update test require the
+    maintainer's signing identities (Windows certificate, Apple Developer
+    identity, Tauri updater key pair) and a published release + update
+    server. Steps documented in docs/RELEASE.md.
+  - The desktop notification for follow-ups uses the Web Notification
+    API inside the webview; on platforms where it is unavailable the
+    in-app banner still shows.
+  - Embeddings default to a local deterministic hashing embedder (no
+    model download, offline); sentence-transformers/API embedders plug in
+    via the EmbeddingProvider interface.
+- Next best step: run the CI matrix for pkg-016 (needs a GitHub remote),
+  then release-017 signing + auto-update against a published release.
+  Optional follow-ups: per-task model assignment UI (ModelConfig table
+  exists), application-form offers (pre-fill/clipboard/open URL, MVP
+  per ADR 0003), data export/deletion endpoints (GDPR section of the
+  spec).
 
 ### Session 002
 
 - Date: 2026-10-28
 - Goal: Implement feature skel-001 (Phase 1 skeleton), then continue in
   priority order.
-- Completed:
-  - skel-001 (passing):
-    - backend/: FastAPI sidecar, session-token middleware (401 on every
-      request without the per-launch Bearer token, including /health),
-      pydantic-settings config, uvicorn entry point (`python -m app`).
-    - src/: React 18 + Vite + Tailwind skeleton: sidebar with the planned
-      navigation, status bar polling the authenticated /health endpoint via
-      the Tauri commands.
-    - src-tauri/: Tauri 2 core, minimal per architecture: random session
-      token (48 alphanumerics, memory only), free-port allocation, sidecar
-      spawn via uv with supervision/restart-on-crash, kill on exit,
-      get_backend_url/get_session_token commands, strict CSP, generated
-      icon set.
-    - README.md (setup/dev/verification), .env.example (no secrets allowed),
-      .gitignore.
-  - db-002 (passing):
-    - backend/app/db/models.py: 12 tables per docs/ARCHITECTURE.md (Profile,
-      Experience, Education, Project, Document, SearchCriteria, Offer with
-      dedup hash + embedding, MatchResult, Application, LLMUsage, EventLog,
-      ModelConfig). JSON columns for list/dict fields; no secrets stored.
-    - Alembic wired to the SQLModel metadata (backend/alembic.ini, alembic/,
-      initial revision a1dc86066505); migrations run automatically at sidecar
-      startup (app/db/migrate.py + lifespan hook).
-    - backend/tests: auth (8), migrations (3), model CRUD round-trips with FK
-      protection checks (5).
-  - System prerequisite resolved this session: installed the Tauri Linux
-    libraries (libwebkit2gtk-4.1-dev etc.) so cargo check can run.
-- Verification run: ./init.sh full run passed (ruff clean, pytest 16 passed,
-  tsc && vite build, cargo check). Live smoke tests: sidecar 401 without
-  token / 200 with token; first run created and migrated the SQLite DB.
-- Evidence captured: feature_list.json (skel-001, db-002 evidence arrays),
-  this file.
-- Commits: 7de9f13 (skel-001) + this session's db-002 commit.
-- Known risk or unresolved issue:
-  - The desktop app spawns the sidecar via `uv run` from the backend
-    directory (dev-mode); release packaging (PyInstaller externalBin) is
-    feature pkg-016. `tauri build` outputs are not verifiable until then.
-  - The GUI was launched end to end this session (`npm run tauri dev`,
-    display available): window opened (WebKit webview processes present),
-    sidecar started, migrations ran, supervisor reported
-    "sidecar healthy on 127.0.0.1:34443". This exposed and fixed a real
-    bug: the Rust core ran `python -m app` from the project root instead
-    of backend/ ("No module named app"); spawn now uses
-    `current_dir = backend/`.
-  - Non-fatal Mesa/libEGL warnings appear in the console on this machine
-    (software rendering, no GPU); the window still opens.
-  - sqlite-vec and the embedding model-name tables land with match-006.
-- Verification run (session 002, final): ./init.sh full run passed after
-  the sidecar-spawn fix (ruff clean, pytest 16 passed, tsc && vite build,
-  cargo check); `npm run tauri dev` launched the real app end to end.
-- Next best step: implement llm-003 (OpenRouter client behind the
-  LLMProvider interface: keychain-stored API key via keyring, live model
-  catalog GET /api/v1/models with caching, capability-aware structured
-  output with fallback, usage/cost recording in LLMUsage/EventLog per ADR
-  0002). Contract tests must mock the OpenRouter endpoint; the real API
-  must never be called from tests.
+- Completed: skel-001 (skeleton: FastAPI sidecar with session-token auth,
+  React/Vite/Tailwind renderer, minimal Tauri core with sidecar
+  supervision; verified live) and db-002 (SQLModel + Alembic, migrations
+  at startup). Exposed and fixed a real bug found by launching the app:
+  the sidecar was spawned from the wrong working directory.
+- Verification run: ./init.sh full run passed; `npm run tauri dev` end to
+  end (window + healthy sidecar + migrations).
+- Commits: 7de9f13, af10234, 33e8033.
 
 ### Session 001
 
 - Date: 2026-10-28
-- Goal: Adapt the agent-workflow template to the Stage Finder specification
-  (local-first desktop app that automates job/internship applications with an
-  LLM and mandatory user confirmation before any send).
+- Goal: Adapt the agent-workflow template to the Stage Finder
+  specification (local-first desktop app that automates job/internship
+  applications with an LLM and mandatory user confirmation before any
+  send).
 - Completed:
   - docs/PRODUCT.md rewritten for Stage Finder (product description, hard
     no-auto-send rule, core features, tech requirements, constraints).
@@ -102,23 +164,16 @@ automatically.
   - docs/decisions/: ADR 0001 session-token sidecar, ADR 0002 OpenRouter
     capability-aware integration, ADR 0003 nothing is ever sent
     automatically.
-  - feature_list.json: 17 features derived from the spec's Phase 1/2/3 plan,
-    each with concrete verification steps; all not_started.
+  - feature_list.json: 17 features derived from the spec's Phase 1/2/3
+    plan, each with concrete verification steps; all not_started.
   - init.sh: template-only verification while no code exists; full
-    verification (uv/pytest/ruff, npm build, cargo check) activates when the
-    skeleton lands.
+    verification (uv/pytest/ruff, npm build, cargo check) activates when
+    the skeleton lands.
 - Verification run: ./init.sh (template-only) passed; feature_list.json is
   valid JSON.
 - Evidence captured: init.sh output, session 001 entry in this file.
-- Commits: none yet (no git repository initialized).
+- Commits: 5ac3239 (adaptation), b1917bc (naming).
 - Files or artifacts updated: docs/PRODUCT.md, docs/ARCHITECTURE.md,
   docs/decisions/0001..0003, feature_list.json, init.sh, PROGRESS.md.
-- Known risk or unresolved issue: product name assumed as "Stage Finder"
-  (from the repository name) and is used in docs and the planned bundle
-  identifier; no implementation exists yet -- everything above is
-  specification/planning artifacts only. A partial code scaffold was created
-  and then fully removed per user request (template adaptation only).
-- Next best step: implement feature skel-001 (Tauri 2 + React/Vite/Tailwind
-  frontend, minimal Rust core spawning the FastAPI sidecar with the
-  per-launch session token, health check, README with setup instructions and
-  .env.example).
+- Known risk or unresolved issue: none at the end of the session.
+- Next best step: skel-001 (done in session 002).
