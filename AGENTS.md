@@ -42,7 +42,7 @@ A feature is done only when all of the following are true:
 
 - the target behavior is implemented
 - the required verification actually ran
-- evidence is recorded in `feature_list.json` or `claude-progress.md`
+- evidence is recorded in `feature_list.json` or `PROGRESS.md`
 - the repository remains restartable from the standard startup path
 
 ## End Of Session

@@ -27,4 +27,4 @@
 
 - Startup:
 - Verification:
-- Focused debug command:
+- Focused debug command:w
