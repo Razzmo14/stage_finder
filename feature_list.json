@@ -186,13 +186,19 @@
       "area": "email",
       "title": "Gmail draft creation via OAuth2 (PKCE), direct send behind a setting",
       "user_visible_behavior": "The user connects Gmail and approved applications are created as drafts in their mailbox; direct send exists but is opt-in.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "OAuth2 (PKCE) flow works against mocked Gmail endpoints in tests.",
         "Draft creation is the default; direct send requires the explicit setting and a confirmation click.",
         "Tokens are stored in the OS keychain only."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: tests/test_mail.py: PKCE authorize URL carries S256 code_challenge (verifier never in the URL); token exchange posts the code_verifier; connect flow against mocked endpoints stores access/refresh tokens in the (memory) keychain with raw tokens asserted absent from the SQLite file; forged state rejected.",
+        "2026-10-28: deliver() is the single gateway: draft mode requires confirm=true (422 otherwise); direct send requires allow_direct_send=true AND confirm=true (blocked 422 with clear message otherwise, nothing sent); draft mode posts base64url MIME to /drafts, send posts to /messages/send; statuses draft_saved / sent with sent_at and EventLog draft_created/sent; daily_send_limit enforced (422 'limit' after N sends today).",
+        "2026-10-28: unconnected Gmail produces a clear 422 error; mail settings persist in the appsetting table (migration b2f000000002, upgrade/downgrade/re-upgrade verified).",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 82 passed, tsc+vite build, cargo check).",
+        "2026-10-28: UI: Settings Mail section (OAuth2 connect with code paste, allow-direct-send opt-in, daily limit, sender email); Review screen final confirmation dialog (recipient, subject, letter size, attachments, draft default, send disabled unless enabled)."
+      ],
       "notes": "Phase 1 step 9. Outlook/Graph and SMTP come in Phase 2."
     },
     {

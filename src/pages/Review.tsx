@@ -14,6 +14,7 @@ interface ApplicationDto {
   id: number;
   offer_id: number;
   status: string;
+  recipient: string;
   email_subject: string;
   email_body: string;
   letter_text: string;
@@ -83,8 +84,10 @@ export default function ReviewPage() {
   const letterAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const queue = useQuery<ApplicationDto[]>({
-    queryKey: ["applications", "pending_review"],
-    queryFn: () => api.get<ApplicationDto[]>("/api/v1/applications?status=pending_review"),
+    queryKey: ["applications", "reviewable"],
+    queryFn: () => api.get<ApplicationDto[]>("/api/v1/applications"),
+    select: (apps) =>
+      apps.filter((a) => a.status === "pending_review" || a.status === "approved"),
   });
 
   const profile = useQuery<{ base_letter: string }>({
@@ -113,6 +116,35 @@ export default function ReviewPage() {
   const saveEdit = useMutation({
     mutationFn: () => api.patch<ApplicationDto>(`/api/v1/applications/${selectedId}`, { letter_text: letter }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["applications"] }),
+  });
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmChecked, setConfirmChecked] = useState(false);
+  const [deliverMode, setDeliverMode] = useState<"draft" | "send">("draft");
+  const [deliverMessage, setDeliverMessage] = useState<string | null>(null);
+
+  const mailStatus = useQuery<{ gmail_connected: boolean; allow_direct_send: boolean }>({
+    queryKey: ["mail-status"],
+    queryFn: () => api.get<{ gmail_connected: boolean; allow_direct_send: boolean }>("/api/v1/mail/status"),
+  });
+
+  const deliver = useMutation({
+    mutationFn: (mode: "draft" | "send") =>
+      api.post<{ id: number; status: string }>(`/api/v1/applications/${selectedId}/deliver`, {
+        mode,
+        confirm: true,
+      }),
+    onSuccess: (result) => {
+      setDeliverMessage(`Done: status is now "${result.status}".`);
+      setConfirmOpen(false);
+      setConfirmChecked(false);
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+    onError: (e: Error) => {
+      setDeliverMessage(e.message);
+      setConfirmOpen(false);
+      setConfirmChecked(false);
+    },
   });
 
   const regenerate = async () => {
@@ -234,12 +266,27 @@ export default function ReviewPage() {
               </div>
 
               <div className="mt-2 flex gap-2">
-                <button
-                  className="rounded bg-neutral-900 px-3 py-1 text-sm text-white"
-                  onClick={() => transition.mutate({ id: selected.id, action: "approve" })}
-                >
-                  Approve (send later, with confirmation)
-                </button>
+                {selected.status === "pending_review" && (
+                  <button
+                    className="rounded bg-neutral-900 px-3 py-1 text-sm text-white"
+                    onClick={() => transition.mutate({ id: selected.id, action: "approve" })}
+                  >
+                    Approve
+                  </button>
+                )}
+                {selected.status === "approved" && (
+                  <button
+                    className="rounded bg-neutral-900 px-3 py-1 text-sm text-white"
+                    disabled={!mailStatus.data?.gmail_connected}
+                    onClick={() => {
+                      setDeliverMode("draft");
+                      setDeliverMessage(null);
+                      setConfirmOpen(true);
+                    }}
+                  >
+                    Deliver to Gmail...
+                  </button>
+                )}
                 <button
                   className="rounded border border-neutral-300 px-3 py-1 text-sm"
                   onClick={() => transition.mutate({ id: selected.id, action: "save-for-later" })}
@@ -253,10 +300,67 @@ export default function ReviewPage() {
                   Reject
                 </button>
               </div>
+              {deliverMessage && <p className="text-xs text-neutral-700">{deliverMessage}</p>}
               <p className="text-xs text-neutral-500">
-                Nothing is ever sent automatically: approval only marks intent. Sending
-                happens in the mail feature behind an explicit confirmation dialog.
+                Nothing is ever sent automatically: approval only marks intent. Delivery
+                opens a final confirmation dialog.
               </p>
+
+              {confirmOpen && selected && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black/40">
+                  <div className="w-96 rounded bg-white p-4 shadow-lg">
+                    <h3 className="font-semibold">Confirm delivery</h3>
+                    <ul className="mt-2 space-y-1 text-sm">
+                      <li><span className="text-neutral-500">Recipient:</span> {selected.recipient}</li>
+                      <li><span className="text-neutral-500">Subject:</span> {selected.email_subject}</li>
+                      <li><span className="text-neutral-500">Letter:</span> {letter.length} characters</li>
+                      <li><span className="text-neutral-500">Attachments:</span> none</li>
+                    </ul>
+                    <div className="mt-3 flex gap-2 text-sm">
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="radio"
+                          checked={deliverMode === "draft"}
+                          onChange={() => setDeliverMode("draft")}
+                        />
+                        Create draft (default)
+                      </label>
+                      <label className={`flex items-center gap-1 ${!mailStatus.data?.allow_direct_send ? "text-neutral-400" : ""}`}>
+                        <input
+                          type="radio"
+                          checked={deliverMode === "send"}
+                          onChange={() => setDeliverMode("send")}
+                          disabled={!mailStatus.data?.allow_direct_send}
+                        />
+                        Send directly (opt-in)
+                      </label>
+                    </div>
+                    <label className="mt-3 flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={confirmChecked}
+                        onChange={(e) => setConfirmChecked(e.target.checked)}
+                      />
+                      I confirm: proceed with this delivery
+                    </label>
+                    <div className="mt-3 flex justify-end gap-2">
+                      <button
+                        className="rounded border border-neutral-300 px-3 py-1 text-sm"
+                        onClick={() => setConfirmOpen(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="rounded bg-neutral-900 px-3 py-1 text-sm text-white disabled:opacity-50"
+                        disabled={!confirmChecked || deliver.isPending}
+                        onClick={() => deliver.mutate(deliverMode)}
+                      >
+                        {deliverMode === "draft" ? "Create draft" : "Send"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : (

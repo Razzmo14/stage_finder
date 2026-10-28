@@ -7,6 +7,143 @@ import {
   type ModelInfoDto,
 } from "../lib/api";
 
+interface MailStatusDto {
+  gmail_connected: boolean;
+  allow_direct_send: boolean;
+  daily_send_limit: number;
+  sends_today: number;
+  sender_email: string;
+}
+
+function MailSection() {
+  const queryClient = useQueryClient();
+  const [allowSend, setAllowSend] = useState(false);
+  const [limit, setLimit] = useState(20);
+  const [sender, setSender] = useState("");
+  const [authorizeUrl, setAuthorizeUrl] = useState<string | null>(null);
+  const [oauthState, setOauthState] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+
+  const status = useQuery<MailStatusDto>({
+    queryKey: ["mail-status"],
+    queryFn: () => api.get<MailStatusDto>("/api/v1/mail/status"),
+  });
+
+  const saveSettings = useMutation({
+    mutationFn: () =>
+      api.put<MailStatusDto>("/api/v1/mail/settings", {
+        allow_direct_send: allowSend,
+        daily_send_limit: limit,
+        sender_email: sender,
+      }),
+    onSuccess: (data) => {
+      setMessage("Mail settings saved.");
+      queryClient.invalidateQueries({ queryKey: ["mail-status"] });
+      void data;
+    },
+  });
+
+  const startConnect = useMutation({
+    mutationFn: () => api.post<{ authorize_url: string; state: string }>("/api/v1/mail/gmail/connect/start", {}),
+    onSuccess: (data) => {
+      setAuthorizeUrl(data.authorize_url);
+      setOauthState(data.state);
+      setMessage("Open the URL, authorize, then paste the code here.");
+    },
+  });
+
+  const completeConnect = useMutation({
+    mutationFn: () =>
+      api.post<{ email_address: string }>("/api/v1/mail/gmail/connect/complete", {
+        code,
+        state: oauthState,
+      }),
+    onSuccess: () => {
+      setMessage("Gmail connected.");
+      setCode("");
+      setAuthorizeUrl(null);
+      queryClient.invalidateQueries({ queryKey: ["mail-status"] });
+    },
+    onError: (e: Error) => setMessage(e.message),
+  });
+
+  const s = status.data;
+  return (
+    <section className="rounded border border-neutral-200 bg-white p-4">
+      <h3 className="font-semibold">Email (Gmail)</h3>
+      <p className="mt-2 text-sm">
+        Status: {s?.gmail_connected ? "connected" : "not connected"} · sends today: {s?.sends_today ?? 0}
+      </p>
+      {!s?.gmail_connected ? (
+        <div className="mt-2 space-y-2">
+          <button
+            className="rounded bg-neutral-900 px-3 py-1 text-sm text-white"
+            onClick={() => startConnect.mutate()}
+          >
+            Connect Gmail (OAuth2)
+          </button>
+          {authorizeUrl && (
+            <>
+              <a className="block break-all text-sm text-blue-700 underline" href={authorizeUrl} target="_blank" rel="noreferrer">
+                {authorizeUrl}
+              </a>
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm"
+                  placeholder="Paste the authorization code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                />
+                <button
+                  className="rounded border border-neutral-300 px-2 py-1 text-sm disabled:opacity-50"
+                  disabled={!code || completeConnect.isPending}
+                  onClick={() => completeConnect.mutate()}
+                >
+                  Complete
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      ) : null}
+
+      <h4 className="mt-4 font-medium">Delivery settings</h4>
+      <label className="mt-2 flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={allowSend}
+          onChange={(e) => setAllowSend(e.target.checked)}
+        />
+        Allow direct sending (opt-in; default is creating a draft)
+      </label>
+      <div className="mt-2 flex items-center gap-2 text-sm">
+        <span>Daily send limit:</span>
+        <input
+          type="number"
+          className="w-20 rounded border border-neutral-300 px-2 py-1"
+          value={limit}
+          onChange={(e) => setLimit(Number(e.target.value) || 1)}
+        />
+        <span>Sender email:</span>
+        <input
+          className="w-56 rounded border border-neutral-300 px-2 py-1"
+          value={sender}
+          onChange={(e) => setSender(e.target.value)}
+        />
+      </div>
+      <button
+        className="mt-2 rounded border border-neutral-300 px-3 py-1 text-sm disabled:opacity-50"
+        disabled={saveSettings.isPending}
+        onClick={() => saveSettings.mutate()}
+      >
+        Save mail settings
+      </button>
+      {message && <p className="mt-2 text-sm text-neutral-600">{message}</p>}
+    </section>
+  );
+}
+
 function LlmSection() {
   const queryClient = useQueryClient();
   const [keyInput, setKeyInput] = useState("");
@@ -160,9 +297,9 @@ export default function Settings() {
     <div className="max-w-3xl space-y-6">
       <h2 className="text-xl font-semibold">Settings</h2>
       <LlmSection />
+      <MailSection />
       <p className="text-sm text-neutral-500">
-        Email accounts, send limits, data export and language settings arrive with
-        their features.
+        Data export and language settings arrive with their features.
       </p>
     </div>
   );

@@ -171,3 +171,12 @@ class ModelConfig(SQLModel, table=True):
     model: str = ""
     options: dict = Field(default_factory=dict, sa_column=Column(JSON))
     updated_at: datetime = Field(default_factory=utcnow)
+
+
+class AppSetting(SQLModel, table=True):
+    """Key/value application settings. Never secrets: those go to the keychain."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    key: str = Field(unique=True)
+    value: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    updated_at: datetime = Field(default_factory=utcnow)

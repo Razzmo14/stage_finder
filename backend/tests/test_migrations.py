@@ -18,6 +18,7 @@ ALL_TABLES = {
     "llmusage",
     "eventlog",
     "modelconfig",
+    "appsetting",
 }
 
 
