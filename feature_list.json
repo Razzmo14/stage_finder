@@ -342,13 +342,18 @@
       "area": "infrastructure",
       "title": "Signed installers, auto-update, user documentation",
       "user_visible_behavior": "Users get signed installers with an auto-update path and complete documentation.",
-      "status": "not_started",
+      "status": "in_progress",
       "verification": [
         "Signed installers for all three OSes install and run.",
         "Update from an older version works.",
         "README and user docs cover setup, build and packaging."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: documentation complete: README.md (setup/dev/verification/release build), docs/USER.md (full user guide: LLM setup, keychain, profile, search, matching, review, delivery with the mandatory confirmation dialog, tracking, privacy, language), docs/RELEASE.md (sidecar build, installer build, signing key steps, auto-update steps).",
+        "2026-10-28: auto-update scaffolding in tauri.conf.json (createUpdaterArtifacts + plugins.updater with placeholder pubkey/endpoints, inactive); cargo check passes with the config.",
+        "2026-10-28: NOT YET VERIFIED: signed installers (requires the maintainer's Windows code-signing certificate, Apple Developer identity and updater signing key), and an actual update from an older version (requires a published release + update server). These are documented as the remaining steps in docs/RELEASE.md.",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 118 passed, tsc+vite build, cargo check)."
+      ],
       "notes": "Phase 3."
     }
   ]
