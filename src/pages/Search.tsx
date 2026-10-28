@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 
 interface CriteriaDto {
@@ -45,6 +46,7 @@ const EMPTY_CRITERIA = {
 };
 
 export default function SearchPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [form, setForm] = useState(EMPTY_CRITERIA);
   const [message, setMessage] = useState<string | null>(null);
@@ -90,7 +92,7 @@ export default function SearchPage() {
         criteria_id: criteriaId,
       }),
     onSuccess: (result) => {
-      setMessage(`Search done: ${result.new} new, ${result.duplicates} duplicates.`);
+      setMessage(t("search.searchDone", { newCount: result.new, duplicates: result.duplicates }));
       queryClient.invalidateQueries({ queryKey: ["offers"] });
     },
     onError: (e: Error) => setMessage(e.message),
@@ -104,33 +106,33 @@ export default function SearchPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Search & Offers</h2>
+      <h2 className="text-xl font-semibold">{t("search.title")}</h2>
       {message && <p className="text-sm text-neutral-700">{message}</p>}
 
       <div className="max-w-3xl rounded border border-neutral-200 bg-white p-4">
-        <h3 className="font-semibold">New criteria</h3>
+        <h3 className="font-semibold">{t("search.newCriteria")}</h3>
         <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
           <input
             className="rounded border border-neutral-300 px-2 py-1"
-            placeholder="Name"
+            placeholder={t("search.criteriaName")}
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
           <input
             className="rounded border border-neutral-300 px-2 py-1"
-            placeholder="Keywords (comma separated)"
+            placeholder={t("search.keywords")}
             value={form.keywords}
             onChange={(e) => setForm({ ...form, keywords: e.target.value })}
           />
           <input
             className="rounded border border-neutral-300 px-2 py-1"
-            placeholder="Location (city code)"
+            placeholder={t("search.locationPlaceholder")}
             value={form.location}
             onChange={(e) => setForm({ ...form, location: e.target.value })}
           />
           <input
             className="rounded border border-neutral-300 px-2 py-1"
-            placeholder="Contract types (CDD,CDP...)"
+            placeholder={t("search.contractTypes")}
             value={form.contract_types}
             onChange={(e) => setForm({ ...form, contract_types: e.target.value })}
           />
@@ -140,12 +142,12 @@ export default function SearchPage() {
           disabled={!form.name || createCriteria.isPending}
           onClick={() => createCriteria.mutate()}
         >
-          Save criteria
+          {t("search.saveCriteria")}
         </button>
       </div>
 
       <div className="max-w-3xl rounded border border-neutral-200 bg-white p-4">
-        <h3 className="font-semibold">Saved criteria</h3>
+        <h3 className="font-semibold">{t("search.savedCriteria")}</h3>
         <ul className="mt-2 space-y-2">
           {(criteria.data ?? []).map((c) => (
             <li key={c.id} className="flex items-center justify-between text-sm">
@@ -160,7 +162,7 @@ export default function SearchPage() {
                 disabled={runSearch.isPending}
                 onClick={() => runSearch.mutate(c.id)}
               >
-                {runSearch.isPending ? "Running..." : "Run search"}
+                {runSearch.isPending ? t("search.running") : t("search.runSearch")}
               </button>
             </li>
           ))}
@@ -169,13 +171,13 @@ export default function SearchPage() {
 
       <div className="rounded border border-neutral-200 bg-white p-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Offers ({offers.data?.length ?? 0}), sorted by match score</h3>
+          <h3 className="font-semibold">{t("search.offersSorted", { count: offers.data?.length ?? 0 })}</h3>
           <button
             className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-50"
             disabled={runMatching.isPending}
             onClick={() => runMatching.mutate()}
           >
-            {runMatching.isPending ? "Matching..." : "Run matching (top 10)"}
+            {runMatching.isPending ? t("search.matching") : t("search.runMatching")}
           </button>
         </div>
         <ul className="mt-2 divide-y divide-neutral-100">
@@ -190,12 +192,12 @@ export default function SearchPage() {
                 </span>
                 {o.match && (
                   <div className="text-xs text-neutral-500">
-                    Score {o.match.score}/100 · {o.match.rationale}
+                    {t("search.score", { score: o.match.score })} · {o.match.rationale}
                     {o.match.missing_skills.length > 0 && (
-                      <span> · missing: {o.match.missing_skills.join(", ")}</span>
+                      <span> · {t("search.missing", { skills: o.match.missing_skills.join(", ") })}</span>
                     )}
                     {o.match.red_flags.length > 0 && (
-                      <span className="text-red-600"> · red flags: {o.match.red_flags.join(", ")}</span>
+                      <span className="text-red-600"> · {t("search.redFlags", { flags: o.match.red_flags.join(", ") })}</span>
                     )}
                   </div>
                 )}
@@ -204,7 +206,7 @@ export default function SearchPage() {
                 className="rounded border border-neutral-300 px-2 py-0.5 text-xs"
                 onClick={() => flagOffer.mutate({ id: o.id, ignored: !o.ignored })}
               >
-                {o.ignored ? "Unignore" : "Ignore"}
+                {o.ignored ? t("search.unignore") : t("search.ignore")}
               </button>
             </li>
           ))}

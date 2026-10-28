@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { api } from "../lib/api";
 import { diffWords } from "../lib/diff";
@@ -74,6 +75,7 @@ function DiffView({ before, after }: { before: string; after: string }) {
 }
 
 export default function ReviewPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [letter, setLetter] = useState("");
@@ -135,7 +137,7 @@ export default function ReviewPage() {
         confirm: true,
       }),
     onSuccess: (result) => {
-      setDeliverMessage(`Done: status is now "${result.status}".`);
+      setDeliverMessage(t("review.done", { status: result.status }));
       setConfirmOpen(false);
       setConfirmChecked(false);
       queryClient.invalidateQueries({ queryKey: ["applications"] });
@@ -165,7 +167,7 @@ export default function ReviewPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Review queue</h2>
+      <h2 className="text-xl font-semibold">{t("review.title")}</h2>
 
       <div className="flex gap-4">
         <div className="w-64 shrink-0 rounded border border-neutral-200 bg-white p-2">
@@ -178,10 +180,10 @@ export default function ReviewPage() {
                   }`}
                   onClick={() => setSelectedId(application.id)}
                 >
-                  {application.offer?.title ?? `Application #${application.id}`}
+                  {application.offer?.title ?? "#" + application.id}
                   {application.flagged_claims.length > 0 && (
                     <span className="ml-1 text-xs text-red-600">
-                      ({application.flagged_claims.length} flagged)
+                      ({t("review.flagged", { count: application.flagged_claims.length })})
                     </span>
                   )}
                 </button>
@@ -189,7 +191,7 @@ export default function ReviewPage() {
             ))}
           </ul>
           {(queue.data ?? []).length === 0 && (
-            <p className="p-2 text-sm text-neutral-500">Nothing awaiting review.</p>
+            <p className="p-2 text-sm text-neutral-500">{t("review.nothingPending")}</p>
           )}
         </div>
 
@@ -201,13 +203,13 @@ export default function ReviewPage() {
                 {selected.offer?.company} · {selected.offer?.location} · {selected.offer?.contract_type}
               </p>
               <a className="text-blue-700 underline" href={selected.offer?.url} target="_blank" rel="noreferrer">
-                Original offer
+                {t("review.originalOffer")}
               </a>
               <p className="max-h-80 overflow-y-auto whitespace-pre-wrap text-neutral-700">
                 {selected.offer?.description}
               </p>
               <div>
-                <h4 className="font-medium text-red-700">Flagged claims</h4>
+                <h4 className="font-medium text-red-700">{t("review.flaggedClaims")}</h4>
                 <ul className="list-disc pl-5">
                   {selected.flagged_claims.map((c, i) => (
                     <li key={i} className="bg-red-50 text-red-800">
@@ -216,17 +218,17 @@ export default function ReviewPage() {
                   ))}
                 </ul>
                 {selected.flagged_claims.length === 0 && (
-                  <p className="text-xs text-neutral-500">No unsupported claims detected.</p>
+                  <p className="text-xs text-neutral-500">{t("review.noFlaggedClaims")}</p>
                 )}
               </div>
             </div>
 
             <div className="flex w-1/2 flex-col gap-2 rounded border border-neutral-200 bg-white p-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Letter</h3>
+                <h3 className="text-sm font-semibold">{t("review.letter")}</h3>
                 <label className="flex items-center gap-1 text-xs">
                   <input type="checkbox" checked={showDiff} onChange={(e) => setShowDiff(e.target.checked)} />
-                  diff vs base letter
+                  {t("review.diffToggle")}
                 </label>
               </div>
 
@@ -244,7 +246,7 @@ export default function ReviewPage() {
               <div className="flex gap-2">
                 <input
                   className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm"
-                  placeholder='Instructions: "shorter", "more formal", "emphasize project X"...'
+                  placeholder={t("review.instructionsPlaceholder")}
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && regenerate()}
@@ -254,14 +256,14 @@ export default function ReviewPage() {
                   disabled={streaming || !instructions.trim()}
                   onClick={regenerate}
                 >
-                  {streaming ? "Generating..." : "Regenerate"}
+                  {streaming ? t("review.generating") : t("review.regenerate")}
                 </button>
                 <button
                   className="rounded border border-neutral-300 px-2 py-1 text-sm"
                   disabled={streaming || letter === selected.letter_text}
                   onClick={() => saveEdit.mutate()}
                 >
-                  Save edit
+                  {t("review.saveEdit")}
                 </button>
               </div>
 
@@ -271,7 +273,7 @@ export default function ReviewPage() {
                     className="rounded bg-neutral-900 px-3 py-1 text-sm text-white"
                     onClick={() => transition.mutate({ id: selected.id, action: "approve" })}
                   >
-                    Approve
+                    {t("review.approve")}
                   </button>
                 )}
                 {selected.status === "approved" && (
@@ -284,37 +286,36 @@ export default function ReviewPage() {
                       setConfirmOpen(true);
                     }}
                   >
-                    Deliver to Gmail...
+                    {t("review.deliver")}
                   </button>
                 )}
                 <button
                   className="rounded border border-neutral-300 px-3 py-1 text-sm"
                   onClick={() => transition.mutate({ id: selected.id, action: "save-for-later" })}
                 >
-                  Save for later
+                  {t("review.saveForLater")}
                 </button>
                 <button
                   className="rounded border border-red-300 px-3 py-1 text-sm text-red-700"
                   onClick={() => transition.mutate({ id: selected.id, action: "reject" })}
                 >
-                  Reject
+                  {t("review.reject")}
                 </button>
               </div>
               {deliverMessage && <p className="text-xs text-neutral-700">{deliverMessage}</p>}
               <p className="text-xs text-neutral-500">
-                Nothing is ever sent automatically: approval only marks intent. Delivery
-                opens a final confirmation dialog.
+                {t("review.hardRule")}
               </p>
 
               {confirmOpen && selected && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black/40">
                   <div className="w-96 rounded bg-white p-4 shadow-lg">
-                    <h3 className="font-semibold">Confirm delivery</h3>
+                    <h3 className="font-semibold">{t("review.confirmTitle")}</h3>
                     <ul className="mt-2 space-y-1 text-sm">
-                      <li><span className="text-neutral-500">Recipient:</span> {selected.recipient}</li>
-                      <li><span className="text-neutral-500">Subject:</span> {selected.email_subject}</li>
-                      <li><span className="text-neutral-500">Letter:</span> {letter.length} characters</li>
-                      <li><span className="text-neutral-500">Attachments:</span> none</li>
+                      <li><span className="text-neutral-500">{t("review.recipient")}:</span> {selected.recipient}</li>
+                      <li><span className="text-neutral-500">{t("review.subject")}:</span> {selected.email_subject}</li>
+                      <li><span className="text-neutral-500">{t("review.letterChars")}:</span> {letter.length} characters</li>
+                      <li><span className="text-neutral-500">{t("review.attachments")}:</span> {t("common.none")}</li>
                     </ul>
                     <div className="mt-3 flex gap-2 text-sm">
                       <label className="flex items-center gap-1">
@@ -323,7 +324,7 @@ export default function ReviewPage() {
                           checked={deliverMode === "draft"}
                           onChange={() => setDeliverMode("draft")}
                         />
-                        Create draft (default)
+                        {t("review.createDraft")}
                       </label>
                       <label className={`flex items-center gap-1 ${!mailStatus.data?.allow_direct_send ? "text-neutral-400" : ""}`}>
                         <input
@@ -332,7 +333,7 @@ export default function ReviewPage() {
                           onChange={() => setDeliverMode("send")}
                           disabled={!mailStatus.data?.allow_direct_send}
                         />
-                        Send directly (opt-in)
+                        {t("review.sendDirectly")}
                       </label>
                     </div>
                     <label className="mt-3 flex items-center gap-2 text-sm">
@@ -341,21 +342,21 @@ export default function ReviewPage() {
                         checked={confirmChecked}
                         onChange={(e) => setConfirmChecked(e.target.checked)}
                       />
-                      I confirm: proceed with this delivery
+                      {t("review.confirmCheckbox")}
                     </label>
                     <div className="mt-3 flex justify-end gap-2">
                       <button
                         className="rounded border border-neutral-300 px-3 py-1 text-sm"
                         onClick={() => setConfirmOpen(false)}
                       >
-                        Cancel
+                        {t("common.cancel")}
                       </button>
                       <button
                         className="rounded bg-neutral-900 px-3 py-1 text-sm text-white disabled:opacity-50"
                         disabled={!confirmChecked || deliver.isPending}
                         onClick={() => deliver.mutate(deliverMode)}
                       >
-                        {deliverMode === "draft" ? "Create draft" : "Send"}
+                        {deliverMode === "draft" ? t("review.createDraftButton") : t("review.sendButton")}
                       </button>
                     </div>
                   </div>
@@ -364,7 +365,7 @@ export default function ReviewPage() {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-neutral-500">Select an application to review it.</p>
+          <p className="text-sm text-neutral-500">{t("review.selectApplication")}</p>
         )}
       </div>
     </div>

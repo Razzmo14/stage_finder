@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   api,
   type LlmSettings,
@@ -19,6 +20,7 @@ interface MailStatusDto {
 }
 
 function MailSection() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [account, setAccount] = useState("gmail");
   const [allowSend, setAllowSend] = useState(false);
@@ -54,7 +56,7 @@ function MailSection() {
     onSuccess: (data) => {
       setAuthorizeUrl(data.authorize_url);
       setOauthState(data.state);
-      setMessage("Open the URL, authorize, then paste the code here.");
+      setMessage(t("settings.openUrl"));
     },
   });
 
@@ -76,9 +78,12 @@ function MailSection() {
   const s = status.data;
   return (
     <section className="rounded border border-neutral-200 bg-white p-4">
-      <h3 className="font-semibold">Email (Gmail)</h3>
+      <h3 className="font-semibold">{t("settings.mailTitle")}</h3>
       <p className="mt-2 text-sm">
-        Status: {s?.gmail_connected ? "connected" : "not connected"} · sends today: {s?.sends_today ?? 0}
+        {t("settings.mailStatus", {
+          status: s?.gmail_connected ? t("settings.connected") : t("settings.notConnected"),
+          count: s?.sends_today ?? 0,
+        })}
       </p>
       {!s?.gmail_connected ? (
         <div className="mt-2 space-y-2">
@@ -86,7 +91,7 @@ function MailSection() {
             className="rounded bg-neutral-900 px-3 py-1 text-sm text-white"
             onClick={() => startConnect.mutate()}
           >
-            Connect Gmail (OAuth2)
+            {t("settings.connectGmail")}
           </button>
           {authorizeUrl && (
             <>
@@ -96,7 +101,7 @@ function MailSection() {
               <div className="flex gap-2">
                 <input
                   className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm"
-                  placeholder="Paste the authorization code"
+                  placeholder={t("settings.pasteCode")}
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                 />
@@ -105,7 +110,7 @@ function MailSection() {
                   disabled={!code || completeConnect.isPending}
                   onClick={() => completeConnect.mutate()}
                 >
-                  Complete
+                  {t("settings.complete")}
                 </button>
               </div>
             </>
@@ -113,9 +118,9 @@ function MailSection() {
         </div>
       ) : null}
 
-      <h4 className="mt-4 font-medium">Delivery settings</h4>
+      <h4 className="mt-4 font-medium">{t("settings.deliverySettings")}</h4>
       <div className="mt-2 flex items-center gap-2 text-sm">
-        <span>Active account:</span>
+        <span>{t("settings.activeAccount")}</span>
         {(["gmail", "graph", "smtp"] as const).map((name) => (
           <label key={name} className="flex items-center gap-1">
             <input
@@ -138,17 +143,17 @@ function MailSection() {
           checked={allowSend}
           onChange={(e) => setAllowSend(e.target.checked)}
         />
-        Allow direct sending (opt-in; default is creating a draft)
+        {t("settings.allowDirectSend")}
       </label>
       <div className="mt-2 flex items-center gap-2 text-sm">
-        <span>Daily send limit:</span>
+        <span>{t("settings.dailyLimit")}</span>
         <input
           type="number"
           className="w-20 rounded border border-neutral-300 px-2 py-1"
           value={limit}
           onChange={(e) => setLimit(Number(e.target.value) || 1)}
         />
-        <span>Sender email:</span>
+        <span>{t("settings.senderEmail")}</span>
         <input
           className="w-56 rounded border border-neutral-300 px-2 py-1"
           value={sender}
@@ -174,6 +179,7 @@ interface SchedulerSettingsDto {
 }
 
 function SchedulerSection() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [enabled, setEnabled] = useState(false);
   const [interval, setIntervalMinutes] = useState(240);
@@ -210,28 +216,27 @@ function SchedulerSection() {
 
   return (
     <section className="rounded border border-neutral-200 bg-white p-4">
-      <h3 className="font-semibold">Scheduled searches &amp; reminders</h3>
+      <h3 className="font-semibold">{t("settings.schedulerTitle")}</h3>
       <label className="mt-2 flex items-center gap-2 text-sm">
         <input
           type="checkbox"
           checked={enabled}
           onChange={(e) => setEnabled(e.target.checked)}
         />
-        Run searches periodically
+        {t("settings.runPeriodically")}
       </label>
       <div className="mt-2 flex items-center gap-2 text-sm">
-        <span>Every</span>
+        <span>{t("settings.every")}</span>
         <input
           type="number"
           className="w-24 rounded border border-neutral-300 px-2 py-1"
           value={interval}
           onChange={(e) => setIntervalMinutes(Number(e.target.value) || 60)}
         />
-        <span>minutes</span>
+        <span>{t("settings.minutes")}</span>
       </div>
       <p className="mt-2 text-xs text-neutral-500">
-        The scheduler only ingests offers and records follow-up reminders.
-        It can never send anything (hard rule).
+        {t("settings.schedulerHardRule")}
       </p>
       <div className="mt-2 flex gap-2">
         <button
@@ -246,7 +251,7 @@ function SchedulerSection() {
           disabled={runNow.isPending}
           onClick={() => runNow.mutate()}
         >
-          Run searches now
+          {t("settings.runNow")}
         </button>
       </div>
       {message && <p className="mt-2 text-sm text-neutral-600">{message}</p>}
@@ -261,6 +266,7 @@ interface LlmConfigDto {
 }
 
 function LlmConfigSection() {
+  const { t } = useTranslation();
   const [provider, setProvider] = useState("openrouter");
   const [budget, setBudget] = useState<number | null>(null);
   const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
@@ -284,14 +290,14 @@ function LlmConfigSection() {
 
   return (
     <section className="rounded border border-neutral-200 bg-white p-4">
-      <h3 className="font-semibold">LLM provider &amp; budget</h3>
+      <h3 className="font-semibold">{t("settings.llmProviderTitle")}</h3>
       <div className="mt-2 flex items-center gap-3 text-sm">
-        <span>Provider:</span>
+        <span>{t("settings.provider")}</span>
         {(["openrouter", "anthropic", "openai", "ollama"] as const).map((name) => (
           <label key={name} className="flex items-center gap-1">
             <input type="radio" checked={provider === name} onChange={() => setProvider(name)} />
             {name}
-            {name === "ollama" && <span className="text-xs text-neutral-400">(local-only mode)</span>}
+            {name === "ollama" && <span className="text-xs text-neutral-400">{t("settings.localOnly")}</span>}
           </label>
         ))}
       </div>
@@ -300,11 +306,11 @@ function LlmConfigSection() {
           className="mt-2 w-72 rounded border border-neutral-300 px-2 py-1 text-sm"
           value={ollamaUrl}
           onChange={(e) => setOllamaUrl(e.target.value)}
-          placeholder="Ollama base URL"
+          placeholder={t("settings.ollamaUrl")}
         />
       )}
       <div className="mt-2 flex items-center gap-2 text-sm">
-        <span>Monthly budget (USD, empty = no cap):</span>
+        <span>{t("settings.budget")}:</span>
         <input
           type="number"
           className="w-24 rounded border border-neutral-300 px-2 py-1"
@@ -313,7 +319,7 @@ function LlmConfigSection() {
         />
         {budgetStatus.data && (
           <span className="text-xs text-neutral-500">
-            spent this month: {budgetStatus.data.spent_usd}
+            {t("settings.spentThisMonth", { amount: budgetStatus.data.spent_usd })}
           </span>
         )}
       </div>
@@ -322,7 +328,7 @@ function LlmConfigSection() {
         disabled={save.isPending}
         onClick={() => save.mutate()}
       >
-        Save
+        {t("common.save")}
       </button>
       {message && <p className="mt-2 text-sm text-neutral-600">{message}</p>}
     </section>
@@ -330,6 +336,7 @@ function LlmConfigSection() {
 }
 
 function LlmSection() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [keyInput, setKeyInput] = useState("");
   const [search, setSearch] = useState("");
@@ -380,21 +387,21 @@ function LlmSection() {
 
   return (
     <section className="rounded border border-neutral-200 bg-white p-4">
-      <h3 className="font-semibold">LLM (OpenRouter)</h3>
+      <h3 className="font-semibold">{t("settings.llmTitle")}</h3>
 
       <div className="mt-3 flex items-center gap-2">
         <span className="text-sm text-neutral-600">
-          API key: {settings.data?.api_key_masked ?? "not configured"}
+          {t("settings.apiKey")}: {settings.data?.api_key_masked ?? t("settings.notConfigured")}
         </span>
         <span className="rounded bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600">
-          keychain only
+          {t("settings.keychainOnly")}
         </span>
       </div>
       <div className="mt-2 flex gap-2">
         <input
           type="password"
           className="w-80 rounded border border-neutral-300 px-2 py-1 text-sm"
-          placeholder="sk-or-v1-..."
+          placeholder={t("settings.apiKeyPlaceholder")}
           value={keyInput}
           onChange={(e) => setKeyInput(e.target.value)}
         />
@@ -403,23 +410,23 @@ function LlmSection() {
           disabled={keyInput.length < 8 || saveKey.isPending}
           onClick={() => saveKey.mutate(keyInput)}
         >
-          Save key
+          {t("settings.saveKey")}
         </button>
         <button
           className="rounded border border-neutral-300 px-3 py-1 text-sm"
           disabled={!settings.data?.api_key_masked || deleteKey.isPending}
           onClick={() => deleteKey.mutate()}
         >
-          Remove
+          {t("settings.remove")}
         </button>
       </div>
       {saveKey.isError && <p className="mt-1 text-sm text-red-600">{saveKey.error.message}</p>}
 
-      <h4 className="mt-6 font-medium">Model catalog</h4>
+      <h4 className="mt-6 font-medium">{t("settings.modelCatalog")}</h4>
       {models.isError && <p className="text-sm text-red-600">{models.error.message}</p>}
       <input
         className="mt-2 w-72 rounded border border-neutral-300 px-2 py-1 text-sm"
-        placeholder="Search models..."
+        placeholder={t("settings.searchModels")}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -433,9 +440,9 @@ function LlmSection() {
         <table className="w-full text-sm">
           <thead className="bg-neutral-50 text-left text-xs uppercase text-neutral-500">
             <tr>
-              <th className="px-2 py-1">Model</th>
-              <th className="px-2 py-1">Context</th>
-              <th className="px-2 py-1">Structured</th>
+              <th className="px-2 py-1">{t("settings.model")}</th>
+              <th className="px-2 py-1">{t("settings.context")}</th>
+              <th className="px-2 py-1">{t("settings.structured")}</th>
               <th className="px-2 py-1"></th>
             </tr>
           </thead>
@@ -447,7 +454,7 @@ function LlmSection() {
                   <div className="text-xs text-neutral-500">{m.id}</div>
                 </td>
                 <td className="px-2 py-1">{m.context_length ?? "?"}</td>
-                <td className="px-2 py-1">{m.supports_structured_output ? "yes" : "fallback"}</td>
+                <td className="px-2 py-1">{m.supports_structured_output ? t("settings.yes") : t("settings.fallback")}</td>
                 <td className="px-2 py-1">
                   <button
                     className="rounded border border-neutral-300 px-2 py-0.5 text-xs"
@@ -456,7 +463,7 @@ function LlmSection() {
                       runTest.mutate(m.id);
                     }}
                   >
-                    Test
+                    {t("settings.test")}
                   </button>
                 </td>
               </tr>
@@ -465,11 +472,15 @@ function LlmSection() {
         </table>
       </div>
 
-      {runTest.isPending && testModel && <p className="mt-2 text-sm">Testing {testModel}...</p>}
+      {runTest.isPending && testModel && <p className="mt-2 text-sm">{t("settings.testing", { model: testModel })}</p>}
       {testResult && (
         <p className="mt-2 text-sm">
-          {testResult.reply} — {testResult.prompt_tokens}+{testResult.completion_tokens} tokens,
-          cost {testResult.cost}
+          {t("settings.testResult", {
+            reply: testResult.reply,
+            prompt: testResult.prompt_tokens,
+            completion: testResult.completion_tokens,
+            cost: testResult.cost,
+          })}
         </p>
       )}
       {testError && <p className="mt-2 text-sm text-red-600">{testError}</p>}
@@ -478,9 +489,10 @@ function LlmSection() {
 }
 
 export default function Settings() {
+  const { t } = useTranslation();
   return (
     <div className="max-w-3xl space-y-6">
-      <h2 className="text-xl font-semibold">Settings</h2>
+      <h2 className="text-xl font-semibold">{t("settings.title")}</h2>
       <LlmConfigSection />
       <LlmSection />
       <MailSection />

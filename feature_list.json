@@ -304,12 +304,16 @@
       "area": "frontend",
       "title": "UI in French and English (i18next)",
       "user_visible_behavior": "The whole UI can be switched between French and English.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Language switch updates all visible strings.",
         "No hardcoded user-facing strings remain in components."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: i18next + react-i18next; locales src/locales/en.json and fr.json with 164 keys verified aligned by a parity script; language persisted in localStorage, switcher in the sidebar (EN/FR), initial language applied on startup.",
+        "2026-10-28: every screen migrated to t() keys (nav, status bar, follow-up banner + notification, profile, search, review incl. the confirmation dialog, applications kanban/list/timeline, all settings sections); grep audit shows no remaining hardcoded user-facing literals in components (only the 'Stage Finder' brand name and technical placeholders).",
+        "2026-10-28: ./init.sh full run passed after the migration (ruff, pytest 118 passed, tsc+vite build, cargo check)."
+      ],
       "notes": "Phase 2."
     },
     {

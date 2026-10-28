@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 
 interface ExperienceDto {
@@ -127,6 +128,7 @@ function ListField({
 }
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const profile = useQuery<ProfileDto>({
@@ -160,7 +162,7 @@ export default function ProfilePage() {
     },
   });
 
-  if (profile.isLoading) return <p className="text-neutral-500">Loading profile...</p>;
+  if (profile.isLoading) return <p className="text-neutral-500">{t("common.loading")}</p>;
 
   const data: ProfileDto = profile.data ?? EMPTY;
   const set = <K extends keyof ProfileDto>(key: K, value: ProfileDto[K]) => {
@@ -170,9 +172,9 @@ export default function ProfilePage() {
   return (
     <div className="max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Profile</h2>
+        <h2 className="text-xl font-semibold">{t("profile.title")}</h2>
         <label className="cursor-pointer rounded border border-neutral-300 px-3 py-1 text-sm">
-          Import CV (PDF/DOCX)
+          {t("profile.importCv")}
           <input
             type="file"
             accept=".pdf,.docx"
@@ -184,38 +186,38 @@ export default function ProfilePage() {
           />
         </label>
       </div>
-      {upload.isPending && <p className="text-sm">Extracting profile from CV...</p>}
+      {upload.isPending && <p className="text-sm">{t("profile.extracting")}</p>}
       {upload.isError && <p className="text-sm text-red-600">{upload.error.message}</p>}
       {save.isError && <p className="text-sm text-red-600">{save.error.message}</p>}
 
       <div className="grid grid-cols-2 gap-4 rounded border border-neutral-200 bg-white p-4">
-        <Field label="Full name" value={data.full_name} onChange={(v) => set("full_name", v)} />
-        <Field label="Email" value={data.email} onChange={(v) => set("email", v)} />
-        <Field label="Phone" value={data.phone} onChange={(v) => set("phone", v)} />
-        <Field label="Location" value={data.location} onChange={(v) => set("location", v)} />
-        <Field label="Headline" value={data.headline} onChange={(v) => set("headline", v)} />
-        <ListField label="Languages" items={data.languages} onChange={(v) => set("languages", v)} />
+        <Field label={t("profile.fullName")} value={data.full_name} onChange={(v) => set("full_name", v)} />
+        <Field label={t("profile.email")} value={data.email} onChange={(v) => set("email", v)} />
+        <Field label={t("profile.phone")} value={data.phone} onChange={(v) => set("phone", v)} />
+        <Field label={t("profile.location")} value={data.location} onChange={(v) => set("location", v)} />
+        <Field label={t("profile.headline")} value={data.headline} onChange={(v) => set("headline", v)} />
+        <ListField label={t("profile.languages")} items={data.languages} onChange={(v) => set("languages", v)} />
         <div className="col-span-2">
-          <Area label="Summary" value={data.summary} onChange={(v) => set("summary", v)} />
+          <Area label={t("profile.summary")} value={data.summary} onChange={(v) => set("summary", v)} />
         </div>
         <div className="col-span-2">
-          <ListField label="Skills" items={data.skills} onChange={(v) => set("skills", v)} />
+          <ListField label={t("profile.skills")} items={data.skills} onChange={(v) => set("skills", v)} />
         </div>
       </div>
 
       <div className="rounded border border-neutral-200 bg-white p-4">
-        <h3 className="font-semibold">Base cover letter</h3>
+        <h3 className="font-semibold">{t("profile.letterSection")}</h3>
         <div className="mt-2 grid grid-cols-2 gap-4">
-          <Field label="Tone" value={data.letter_tone} onChange={(v) => set("letter_tone", v)} />
+          <Field label={t("profile.tone")} value={data.letter_tone} onChange={(v) => set("letter_tone", v)} />
           <Field
-            label="Letter language"
+            label={t("profile.letterLanguage")}
             value={data.letter_language}
             onChange={(v) => set("letter_language", v)}
           />
         </div>
         <div className="mt-2">
           <Area
-            label="Letter text"
+            label={t("profile.letterText")}
             rows={6}
             value={data.base_letter}
             onChange={(v) => set("base_letter", v)}
@@ -223,7 +225,7 @@ export default function ProfilePage() {
         </div>
         <div className="mt-2">
           <ListField
-            label="Never-say rules"
+            label={t("profile.neverSay")}
             items={data.never_say_rules}
             onChange={(v) => set("never_say_rules", v)}
           />
@@ -232,17 +234,17 @@ export default function ProfilePage() {
 
       <div className="rounded border border-neutral-200 bg-white p-4">
         <h3 className="font-semibold">
-          Experiences ({data.experiences.length}) — edit via CV import or API for now
+          {t("profile.experiences", { count: data.experiences.length })}
         </h3>
         <ul className="mt-2 space-y-1 text-sm">
           {data.experiences.map((e, i) => (
             <li key={i}>
-              <span className="font-medium">{e.position}</span> at {e.company} ({e.start_date} –{" "}
-              {e.end_date || "now"})
+              <span className="font-medium">{e.position}</span> {t("profile.at")} {e.company} ({e.start_date} –{" "}
+              {e.end_date || t("profile.now")})
             </li>
           ))}
         </ul>
-        <h3 className="mt-4 font-semibold">Education ({data.education.length})</h3>
+        <h3 className="mt-4 font-semibold">{t("profile.education", { count: data.education.length })}</h3>
         <ul className="mt-2 space-y-1 text-sm">
           {data.education.map((e, i) => (
             <li key={i}>
@@ -250,7 +252,7 @@ export default function ProfilePage() {
             </li>
           ))}
         </ul>
-        <h3 className="mt-4 font-semibold">Projects ({data.projects.length})</h3>
+        <h3 className="mt-4 font-semibold">{t("profile.projects", { count: data.projects.length })}</h3>
         <ul className="mt-2 space-y-1 text-sm">
           {data.projects.map((p, i) => (
             <li key={i}>

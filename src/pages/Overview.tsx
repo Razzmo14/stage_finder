@@ -1,11 +1,11 @@
+import { useTranslation } from "react-i18next";
+
 export default function Overview() {
+  const { t } = useTranslation();
   return (
     <div>
-      <h2 className="text-xl font-semibold">Overview</h2>
-      <p className="mt-2 text-neutral-500">
-        The pipeline overview (profile completeness, latest searches, applications
-        awaiting review) arrives with the profile, search and review features.
-      </p>
+      <h2 className="text-xl font-semibold">{t("overview.title")}</h2>
+      <p className="mt-2 text-neutral-500">{t("overview.pending")}</p>
     </div>
   );
 }
