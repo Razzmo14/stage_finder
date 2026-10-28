@@ -164,14 +164,20 @@
       "area": "review",
       "title": "Review screen: diff, inline editing, streamed regeneration, approve/reject",
       "user_visible_behavior": "The user reviews each offer/letter side by side, edits, regenerates with instructions or another model, and chooses approve/send, save-as-draft, or reject.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Diff against the base letter renders correctly.",
         "Regeneration streams into the editor.",
         "Unsupported claims are highlighted.",
         "No send path is reachable without the confirmation dialog (hard rule)."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: tests/test_review.py: review queue lists pending_review applications with the offer attached and flagged claims; inline edits persist and log an 'edited' event without ever changing status; approve -> status approved (intent only), reject, save-for-later transitions with EventLog entries.",
+        "2026-10-28: hard rule: test asserts the review module's router exposes no route containing 'send' and that no review status can be 'sent'/'draft_sent'; the review screen states that approval is intent-only.",
+        "2026-10-28: streaming: POST /api/v1/letters/regenerate returns text/plain chunks; the streamed text lands in the editor and is persisted as the new letter with a letter_regenerated event; custom model honored; instructions and previous letter present in the prompt (asserted on the fake provider).",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 71 passed, tsc+vite build, cargo check).",
+        "2026-10-28: Review screen (frontend): side-by-side offer/letter, word-level LCS diff against the base letter, flagged claims highlighted, instructions + streamed regeneration, Save edit, Approve/Save for later/Reject."
+      ],
       "notes": "Phase 1 step 8. HARD RULE: nothing sent without explicit per-application confirmation."
     },
     {

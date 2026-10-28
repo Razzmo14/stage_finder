@@ -5,6 +5,8 @@ require_parameters=true when a JSON schema response format is requested
 (ADR 0002).
 """
 
+from collections.abc import Iterator
+
 from openai import OpenAI
 
 from app.core import secrets
@@ -73,3 +75,35 @@ class OpenRouterProvider:
             prompt_tokens=getattr(usage, "prompt_tokens", 0) or 0,
             completion_tokens=getattr(usage, "completion_tokens", 0) or 0,
         )
+
+    def stream(self, request: CompletionRequest) -> Iterator[str]:
+        """Stream content chunks; token usage is recorded when provided."""
+        extra_body = {
+            "provider": {"data_collection": "deny"},
+            "stream_options": {"include_usage": True},
+        }
+        if request.extra_body:
+            extra_body.update(request.extra_body)
+
+        kwargs: dict = {
+            "model": request.model,
+            "messages": [{"role": m.role, "content": m.content} for m in request.messages],
+            "extra_body": extra_body,
+            "stream": True,
+        }
+        if request.temperature is not None:
+            kwargs["temperature"] = request.temperature
+        if request.max_tokens is not None:
+            kwargs["max_tokens"] = request.max_tokens
+
+        try:
+            stream = self._client().chat.completions.create(**kwargs)
+            for chunk in stream:
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta
+                content = getattr(delta, "content", None)
+                if content:
+                    yield content
+        except Exception as error:  # noqa: BLE001
+            raise LLMError(f"OpenRouter stream failed: {error}") from error

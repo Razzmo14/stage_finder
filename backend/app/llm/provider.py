@@ -5,6 +5,7 @@ A thin interface over chat completions. Implementations: OpenRouter
 No LangChain; direct SDK/HTTP calls only.
 """
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Protocol
 
@@ -47,6 +48,9 @@ class LLMProvider(Protocol):
     def complete(self, request: CompletionRequest) -> Completion:
         """Synchronous completion call."""
         ...
+
+    def stream(self, request: CompletionRequest) -> Iterator[str]:
+        """Streaming completion; yields content chunks."""
 
 
 def messages(*pairs: tuple[str, str]) -> list[ChatMessage]:
