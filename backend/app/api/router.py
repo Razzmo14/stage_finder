@@ -2,7 +2,17 @@
 
 from fastapi import APIRouter
 
-from app.api import applications, criteria, letters, llm_settings, mail, match, offers, profile
+from app.api import (
+    applications,
+    criteria,
+    letters,
+    llm_settings,
+    mail,
+    match,
+    offers,
+    profile,
+    scheduler,
+)
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(llm_settings.router)
@@ -13,3 +23,4 @@ api_router.include_router(match.router)
 api_router.include_router(letters.router)
 api_router.include_router(applications.router)
 api_router.include_router(mail.router)
+api_router.include_router(scheduler.router)

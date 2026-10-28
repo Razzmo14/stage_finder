@@ -11,8 +11,9 @@ from datetime import UTC, datetime
 
 from sqlmodel import Session, select
 
-from app.db.models import Application, AppSetting, EventLog
+from app.db.models import Application, EventLog
 from app.services.mailer.gmail import GmailClient, build_mime
+from app.services.settings import get_setting
 
 
 class DeliveryError(Exception):
@@ -20,28 +21,6 @@ class DeliveryError(Exception):
 
 DRAFT_STATUS = "draft_saved"
 SENT_STATUS = "sent"
-
-DEFAULT_SETTINGS: dict[str, dict] = {
-    "mail": {"allow_direct_send": False, "daily_send_limit": 20, "sender_email": ""},
-    "gmail_redirect_uri": {"uri": "http://localhost:1420/oauth/gmail/callback"},
-}
-
-
-def get_setting(session: Session, key: str) -> dict:
-    row = session.exec(select(AppSetting).where(AppSetting.key == key)).first()
-    if row is not None:
-        return dict(row.value or {})
-    return dict(DEFAULT_SETTINGS.get(key, {}))
-
-
-def set_setting(session: Session, key: str, value: dict) -> None:
-    row = session.exec(select(AppSetting).where(AppSetting.key == key)).first()
-    if row is None:
-        row = AppSetting(key=key)
-    row.value = value
-    row.updated_at = datetime.now(UTC)
-    session.add(row)
-    session.commit()
 
 
 def sends_today(session: Session) -> int:

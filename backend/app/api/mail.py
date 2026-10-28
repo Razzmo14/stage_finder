@@ -12,7 +12,8 @@ from pydantic import BaseModel
 from app.api.deps import DbDep
 from app.db.models import Application
 from app.services.mailer.gmail import GmailClient
-from app.services.mailer.mailer import DeliveryError, deliver, get_setting, sends_today, set_setting
+from app.services.mailer.mailer import DeliveryError, deliver, sends_today
+from app.services.settings import get_setting, set_setting
 
 router = APIRouter()
 

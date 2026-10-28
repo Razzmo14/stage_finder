@@ -263,12 +263,19 @@
       "area": "scheduler",
       "title": "Scheduled searches, follow-up reminders, desktop notifications",
       "user_visible_behavior": "Periodic offer searches run automatically and the user gets notified of follow-ups.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "APScheduler jobs are idempotent across restarts.",
         "A due follow-up produces a desktop notification."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: tests/test_scheduler.py: job registration is idempotent (stable IDs, replace_existing, interval updated in place after a simulated restart; disabling removes the jobs); the scheduler is started on creation so pending jobs deduplicate immediately.",
+        "2026-10-28: run_all_criteria runs only enabled criteria and ingests offers only (no Applications, no EventLog entries, no mailbox access); reruns deduplicate; API settings persist.",
+        "2026-10-28: due follow-ups: a past-due follow-up is returned by GET /api/v1/follow-ups and produces a follow_up_due notification (idempotent per day); future dates and rejected applications excluded.",
+        "2026-10-28: HARD RULE: source-level test asserts the scheduler modules reference neither the mailer nor deliver()/any mail client; the scheduler can never send.",
+        "2026-10-28: UI: follow-up banner + web Notification API polling /api/v1/follow-ups; scheduler settings (enable, interval, run now).",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 107 passed, tsc+vite build, cargo check)."
+      ],
       "notes": "Phase 2. The scheduler may never trigger a send (ADR 0003)."
     },
     {

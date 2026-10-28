@@ -22,7 +22,7 @@ from app.services.mailer.gmail import (
     encode_raw,
     new_oauth_state,
 )
-from app.services.mailer.mailer import get_setting, set_setting
+from app.services.settings import get_setting, set_setting
 
 TOKEN = "test-token"
 HEADERS = {"Authorization": f"Bearer {TOKEN}"}

@@ -167,6 +167,93 @@ function MailSection() {
   );
 }
 
+interface SchedulerSettingsDto {
+  enabled: boolean;
+  search_interval_minutes: number;
+  follow_up_check_minutes: number;
+}
+
+function SchedulerSection() {
+  const queryClient = useQueryClient();
+  const [enabled, setEnabled] = useState(false);
+  const [interval, setIntervalMinutes] = useState(240);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const settings = useQuery<SchedulerSettingsDto>({
+    queryKey: ["scheduler-settings"],
+    queryFn: () => api.get<SchedulerSettingsDto>("/api/v1/settings/scheduler"),
+  });
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.put<SchedulerSettingsDto>("/api/v1/settings/scheduler", {
+        enabled,
+        search_interval_minutes: interval,
+        follow_up_check_minutes: settings.data?.follow_up_check_minutes ?? 15,
+      }),
+    onSuccess: () => {
+      setMessage("Scheduler settings saved.");
+      queryClient.invalidateQueries({ queryKey: ["scheduler-settings"] });
+    },
+  });
+
+  const runNow = useMutation({
+    mutationFn: () =>
+      api.post<{ criteria: number; new: number; duplicates: number }>(
+        "/api/v1/scheduler/run-searches",
+        {}
+      ),
+    onSuccess: (stats) =>
+      setMessage(`Run finished: ${stats.criteria} criteria, ${stats.new} new offers.`),
+    onError: (e: Error) => setMessage(e.message),
+  });
+
+  return (
+    <section className="rounded border border-neutral-200 bg-white p-4">
+      <h3 className="font-semibold">Scheduled searches &amp; reminders</h3>
+      <label className="mt-2 flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => setEnabled(e.target.checked)}
+        />
+        Run searches periodically
+      </label>
+      <div className="mt-2 flex items-center gap-2 text-sm">
+        <span>Every</span>
+        <input
+          type="number"
+          className="w-24 rounded border border-neutral-300 px-2 py-1"
+          value={interval}
+          onChange={(e) => setIntervalMinutes(Number(e.target.value) || 60)}
+        />
+        <span>minutes</span>
+      </div>
+      <p className="mt-2 text-xs text-neutral-500">
+        The scheduler only ingests offers and records follow-up reminders.
+        It can never send anything (hard rule).
+      </p>
+      <div className="mt-2 flex gap-2">
+        <button
+          className="rounded border border-neutral-300 px-3 py-1 text-sm disabled:opacity-50"
+          disabled={save.isPending}
+          onClick={() => save.mutate()}
+        >
+          Save
+        </button>
+        <button
+          className="rounded border border-neutral-300 px-3 py-1 text-sm disabled:opacity-50"
+          disabled={runNow.isPending}
+          onClick={() => runNow.mutate()}
+        >
+          Run searches now
+        </button>
+      </div>
+      {message && <p className="mt-2 text-sm text-neutral-600">{message}</p>}
+    </section>
+  );
+}
+
 function LlmSection() {
   const queryClient = useQueryClient();
   const [keyInput, setKeyInput] = useState("");
@@ -321,6 +408,7 @@ export default function Settings() {
       <h2 className="text-xl font-semibold">Settings</h2>
       <LlmSection />
       <MailSection />
+      <SchedulerSection />
       <p className="text-sm text-neutral-500">
         Data export and language settings arrive with their features.
       </p>

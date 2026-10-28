@@ -1,12 +1,61 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
+import { api } from "./lib/api";
 import Settings from "./pages/Settings";
 import Overview from "./pages/Overview";
 import ProfilePage from "./pages/Profile";
 import SearchPage from "./pages/Search";
 import ReviewPage from "./pages/Review";
 import ApplicationsPage from "./pages/Applications";
+
+interface FollowUpDto {
+  application_id: number;
+  follow_up_date: string;
+  status: string;
+  offer_title: string;
+}
+
+function FollowUpWatcher() {
+  const notified = useRef<Set<number>>(new Set());
+  const followUps = useQuery<FollowUpDto[]>({
+    queryKey: ["follow-ups"],
+    queryFn: () => api.get<FollowUpDto[]>("/api/v1/follow-ups"),
+    refetchInterval: 60000,
+  });
+  const [banner, setBanner] = useState<FollowUpDto[]>([]);
+
+  useEffect(() => {
+    const due = followUps.data ?? [];
+    const fresh = due.filter((f) => !notified.current.has(f.application_id));
+    if (fresh.length === 0) return;
+    fresh.forEach((f) => notified.current.add(f.application_id));
+    setBanner((current) => [...current, ...fresh]);
+    fresh.forEach((f) => {
+      try {
+        new Notification("Application follow-up due", {
+          body: `${f.offer_title}: follow-up planned for ${f.follow_up_date}`,
+        });
+      } catch {
+        // Notification API unavailable; the in-app banner still shows.
+      }
+    });
+  }, [followUps.data]);
+
+  if (banner.length === 0) return null;
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+      <span>
+        {banner.length} follow-up reminder(s) due:{" "}
+        {banner.map((b) => b.offer_title).join(", ")}
+      </span>
+      <button className="underline" onClick={() => setBanner([])}>
+        dismiss
+      </button>
+    </div>
+  );
+}
 
 export type HealthState =
   | { kind: "checking" }
@@ -88,6 +137,7 @@ export default function App() {
         </nav>
       </aside>
       <div className="flex flex-1 flex-col">
+        <FollowUpWatcher />
         <main className="flex-1 overflow-y-auto p-6">
           <Routes>
             <Route path="/" element={<Overview />} />

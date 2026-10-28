@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlmodel import Session
 
 from app.api.router import api_router
 from app.core.config import get_settings
@@ -23,6 +24,30 @@ DEFAULT_TASK_MODELS = {
 }
 
 
+def _run_searches(app: FastAPI):
+    from sqlmodel import Session
+
+    from app.services.scheduler import run_all_criteria
+
+    def run() -> dict:
+        with Session(app.state.db_engine) as session:
+            return run_all_criteria(session, app.state.job_sources)
+
+    return run
+
+
+def _check_follow_ups(app: FastAPI):
+    from sqlmodel import Session
+
+    from app.services.scheduler import record_follow_up_notifications
+
+    def run() -> list[dict]:
+        with Session(app.state.db_engine) as session:
+            return record_follow_up_notifications(session)
+
+    return run
+
+
 def create_app(session_token: str | None = None) -> FastAPI:
     """Build the sidecar app.
 
@@ -37,7 +62,29 @@ def create_app(session_token: str | None = None) -> FastAPI:
         settings.data_dir.mkdir(parents=True, exist_ok=True)
         run_migrations(f"sqlite:///{settings.db_path}")
         app.state.db_engine = make_engine(settings.db_path)
+
+        # Scheduler: periodic searches + follow-up checks. May never send.
+        from app.services.scheduler import make_scheduler, register_jobs
+        from app.services.settings import get_setting, set_setting
+
+        with Session(app.state.db_engine) as session:
+            scheduler_settings = get_setting(session, "scheduler") or {
+                "enabled": False,
+                "search_interval_minutes": 240,
+                "follow_up_check_minutes": 15,
+            }
+            if not scheduler_settings:
+                set_setting(session, "scheduler", dict(scheduler_settings))
+        app.state.scheduler = make_scheduler()
+        register_jobs(
+            app.state.scheduler,
+            run_searches=_run_searches(app),
+            check_follow_ups=_check_follow_ups(app),
+            settings=dict(scheduler_settings),
+        )
         yield
+        if app.state.scheduler.running:
+            app.state.scheduler.shutdown(wait=False)
         app.state.db_engine.dispose()
 
     app = FastAPI(title="Stage Finder backend", version="0.1.0", lifespan=lifespan)
