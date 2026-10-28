@@ -3,6 +3,7 @@ import { NavLink, Route, Routes } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import Settings from "./pages/Settings";
 import Overview from "./pages/Overview";
+import ProfilePage from "./pages/Profile";
 
 export type HealthState =
   | { kind: "checking" }
@@ -87,6 +88,7 @@ export default function App() {
         <main className="flex-1 overflow-y-auto p-6">
           <Routes>
             <Route path="/" element={<Overview />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/settings" element={<Settings />} />
             <Route
               path="*"

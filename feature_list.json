@@ -81,13 +81,18 @@
       "area": "profile",
       "title": "Profile creation: manual entry and CV import with LLM extraction",
       "user_visible_behavior": "The user can fill in their profile manually or import a CV (PDF/DOCX) and correct the LLM-extracted structured profile.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Manual create/edit of identity, skills, experiences, education, languages works end to end.",
         "CV import with a mocked LLM produces a structured profile the user can edit.",
         "Unit tests pass for the parsing pipeline with fixture PDFs."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: tests/test_profile.py: manual create/read/update end to end via the API (identity, skills, languages, base letter + style rules, experiences/education/projects replace on update); CV import DOCX and PDF with mocked LLM returns a structured draft that is NOT saved until the user confirms; LLMUsage row recorded with task profile_extraction; Document stores the CV text and attaches to the profile when it is created.",
+        "2026-10-28: parsing pipeline tests: hand-built valid PDF fixture (tests/fixtures.py make_pdf, extracted with pdfplumber), DOCX fixture built with python-docx, unsupported extension raises ParsingError -> 422.",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 39 passed, tsc+vite build, cargo check).",
+        "2026-10-28: Profile screen (frontend): manual editing of all fields, base letter + tone/language/never-say rules, CV import (PDF/DOCX) triggering LLM extraction."
+      ],
       "notes": "Phase 1 step 4."
     },
     {
