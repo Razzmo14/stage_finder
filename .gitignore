@@ -1,0 +1,16 @@
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/schemas/
+
+# Python
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+backend/.venv/
+*.egg-info/
+
+# Environment / local data
+.env
+*.db
+*.db-journal
