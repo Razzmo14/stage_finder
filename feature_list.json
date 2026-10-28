@@ -1,0 +1,268 @@
+{
+  "project": "stage_finder",
+  "last_updated": "2026-10-28",
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "features": [
+    {
+      "id": "skel-001",
+      "priority": 1,
+      "area": "infrastructure",
+      "title": "Tauri 2 + React + FastAPI sidecar skeleton with session-token auth",
+      "user_visible_behavior": "The desktop app starts, launches the Python backend on a random localhost port, and the frontend can call an authenticated /health endpoint.",
+      "status": "not_started",
+      "verification": [
+        "uv run pytest passes in /backend.",
+        "npm run build succeeds in the frontend.",
+        "cargo check succeeds in /src-tauri.",
+        "Backend rejects requests without the session token (covered by tests)."
+      ],
+      "evidence": [],
+      "notes": "Phase 1 step 1. Rust core stays minimal: window, sidecar spawn, token, two commands. Comes with README (setup/dev/build instructions) and .env.example."
+    },
+    {
+      "id": "db-002",
+      "priority": 2,
+      "area": "infrastructure",
+      "title": "SQLite + SQLModel + Alembic base models",
+      "user_visible_behavior": "The app creates and migrates its local database with the core tables on first run.",
+      "status": "not_started",
+      "verification": [
+        "uv run alembic upgrade head applies migrations from empty to current.",
+        "A downgrade to base and re-upgrade also succeeds.",
+        "pytest covers model round-trips (create, read, update, delete)."
+      ],
+      "evidence": [],
+      "notes": "Phase 1 step 2. Tables per docs/ARCHITECTURE.md Data Storage."
+    },
+    {
+      "id": "llm-003",
+      "priority": 3,
+      "area": "llm",
+      "title": "OpenRouter client: keychain key, live model catalog, capability-aware structured output, usage tracking",
+      "user_visible_behavior": "The user can save an OpenRouter API key in Settings, browse the live model catalog, and run a test call; structured tasks work on models without native structured outputs via fallback.",
+      "status": "not_started",
+      "verification": [
+        "Contract tests with a mocked OpenRouter endpoint pass for the structured-output fallback path (supported_parameters honored, JSON-mode retry with validation error feedback).",
+        "API key is stored in the OS keychain and never appears in logs or DB (test asserts masked display).",
+        "Token usage and cost per request are recorded in the EventLog."
+      ],
+      "evidence": [],
+      "notes": "Phase 1 step 3. See docs/decisions/0002-openrouter-integration.md."
+    },
+    {
+      "id": "profile-004",
+      "priority": 4,
+      "area": "profile",
+      "title": "Profile creation: manual entry and CV import with LLM extraction",
+      "user_visible_behavior": "The user can fill in their profile manually or import a CV (PDF/DOCX) and correct the LLM-extracted structured profile.",
+      "status": "not_started",
+      "verification": [
+        "Manual create/edit of identity, skills, experiences, education, languages works end to end.",
+        "CV import with a mocked LLM produces a structured profile the user can edit.",
+        "Unit tests pass for the parsing pipeline with fixture PDFs."
+      ],
+      "evidence": [],
+      "notes": "Phase 1 step 4."
+    },
+    {
+      "id": "search-005",
+      "priority": 5,
+      "area": "search",
+      "title": "France Travail job source, saved criteria, offer list",
+      "user_visible_behavior": "The user can save search criteria, run a search against France Travail, and see normalized deduplicated offers.",
+      "status": "not_started",
+      "verification": [
+        "Contract tests for the France Travail source pass with recorded fixtures.",
+        "Duplicate offers across runs are deduplicated (hash check in tests).",
+        "Saved criteria persist and rerun correctly."
+      ],
+      "evidence": [],
+      "notes": "Phase 1 step 5. Adzuna and Jooble come in Phase 2 behind the same JobSource interface."
+    },
+    {
+      "id": "match-006",
+      "priority": 6,
+      "area": "matching",
+      "title": "Matching: embedding similarity + LLM re-ranking",
+      "user_visible_behavior": "Offers are scored 0-100 against the profile, with rationale, matched and missing skills, and can be sorted and filtered by score.",
+      "status": "not_started",
+      "verification": [
+        "Unit tests pass for stage 1 (embedding similarity) and stage 2 (LLM scoring with mocked provider).",
+        "MatchResult rows store the model used.",
+        "Offers list is sorted by score."
+      ],
+      "evidence": [],
+      "notes": "Phase 1 step 6. Embedding provider independent from chat model."
+    },
+    {
+      "id": "letter-007",
+      "priority": 7,
+      "area": "letter_generation",
+      "title": "Letter generation with anti-hallucination grounding check",
+      "user_visible_behavior": "The user gets an adapted letter, email subject and body per selected offer, with unsupported claims flagged.",
+      "status": "not_started",
+      "verification": [
+        "Structured output (letter, subject, body, claims) validates against its Pydantic schema in tests.",
+        "Grounding check flags a fabricated skill in a fixture letter (test with mocked verifier).",
+        "French and English offers produce letters in the offer's language."
+      ],
+      "evidence": [],
+      "notes": "Phase 1 step 7."
+    },
+    {
+      "id": "review-008",
+      "priority": 8,
+      "area": "review",
+      "title": "Review screen: diff, inline editing, streamed regeneration, approve/reject",
+      "user_visible_behavior": "The user reviews each offer/letter side by side, edits, regenerates with instructions or another model, and chooses approve/send, save-as-draft, or reject.",
+      "status": "not_started",
+      "verification": [
+        "Diff against the base letter renders correctly.",
+        "Regeneration streams into the editor.",
+        "Unsupported claims are highlighted.",
+        "No send path is reachable without the confirmation dialog (hard rule)."
+      ],
+      "evidence": [],
+      "notes": "Phase 1 step 8. HARD RULE: nothing sent without explicit per-application confirmation."
+    },
+    {
+      "id": "mail-009",
+      "priority": 9,
+      "area": "email",
+      "title": "Gmail draft creation via OAuth2 (PKCE), direct send behind a setting",
+      "user_visible_behavior": "The user connects Gmail and approved applications are created as drafts in their mailbox; direct send exists but is opt-in.",
+      "status": "not_started",
+      "verification": [
+        "OAuth2 (PKCE) flow works against mocked Gmail endpoints in tests.",
+        "Draft creation is the default; direct send requires the explicit setting and a confirmation click.",
+        "Tokens are stored in the OS keychain only."
+      ],
+      "evidence": [],
+      "notes": "Phase 1 step 9. Outlook/Graph and SMTP come in Phase 2."
+    },
+    {
+      "id": "track-010",
+      "priority": 10,
+      "area": "applications",
+      "title": "Application tracking view",
+      "user_visible_behavior": "The user sees all applications by status with a timeline per application.",
+      "status": "not_started",
+      "verification": [
+        "List and Kanban views render from real Application data.",
+        "Status transitions update timestamps and the timeline.",
+        "Follow-up dates are shown."
+      ],
+      "evidence": [],
+      "notes": "Phase 1 step 10. Reminders and reply detection come in Phase 2."
+    },
+    {
+      "id": "sources-011",
+      "priority": 11,
+      "area": "search",
+      "title": "Additional job sources: Adzuna and Jooble",
+      "user_visible_behavior": "Searches run across Adzuna and Jooble in addition to France Travail, with cross-source deduplication.",
+      "status": "not_started",
+      "verification": [
+        "Contract tests with recorded fixtures pass for both sources.",
+        "The same offer found on two sources appears once."
+      ],
+      "evidence": [],
+      "notes": "Phase 2."
+    },
+    {
+      "id": "mail-012",
+      "priority": 12,
+      "area": "email",
+      "title": "Outlook (Microsoft Graph) and SMTP/IMAP fallback",
+      "user_visible_behavior": "The user can connect Outlook or a generic SMTP/IMAP mailbox.",
+      "status": "not_started",
+      "verification": [
+        "Graph OAuth2 (PKCE) flow works with mocked endpoints.",
+        "SMTP fallback creates drafts or sends per settings, with rate limiting."
+      ],
+      "evidence": [],
+      "notes": "Phase 2."
+    },
+    {
+      "id": "sched-013",
+      "priority": 13,
+      "area": "scheduler",
+      "title": "Scheduled searches, follow-up reminders, desktop notifications",
+      "user_visible_behavior": "Periodic offer searches run automatically and the user gets notified of follow-ups.",
+      "status": "not_started",
+      "verification": [
+        "APScheduler jobs are idempotent across restarts.",
+        "A due follow-up produces a desktop notification."
+      ],
+      "evidence": [],
+      "notes": "Phase 2. The scheduler may never trigger a send (ADR 0003)."
+    },
+    {
+      "id": "providers-014",
+      "priority": 14,
+      "area": "llm",
+      "title": "Direct Anthropic/OpenAI and local Ollama providers; budget cap",
+      "user_visible_behavior": "The user can choose providers other than OpenRouter, including a fully local mode, and set a monthly budget cap.",
+      "status": "not_started",
+      "verification": [
+        "LLMProvider interface contract tests pass for all implementations with mocked endpoints.",
+        "Budget cap blocks further generations with a clear message in tests."
+      ],
+      "evidence": [],
+      "notes": "Phase 2."
+    },
+    {
+      "id": "i18n-015",
+      "priority": 15,
+      "area": "frontend",
+      "title": "UI in French and English (i18next)",
+      "user_visible_behavior": "The whole UI can be switched between French and English.",
+      "status": "not_started",
+      "verification": [
+        "Language switch updates all visible strings.",
+        "No hardcoded user-facing strings remain in components."
+      ],
+      "evidence": [],
+      "notes": "Phase 2."
+    },
+    {
+      "id": "pkg-016",
+      "priority": 16,
+      "area": "infrastructure",
+      "title": "Sidecar packaging (PyInstaller externalBin) and CI for Windows/macOS/Linux",
+      "user_visible_behavior": "Installable builds are produced for the three OSes from CI.",
+      "status": "not_started",
+      "verification": [
+        "PyInstaller produces one sidecar binary per OS/architecture, declared in tauri.conf.json.",
+        "GitHub Actions matrix build produces installers for all three OSes."
+      ],
+      "evidence": [],
+      "notes": "Phase 3."
+    },
+    {
+      "id": "release-017",
+      "priority": 17,
+      "area": "infrastructure",
+      "title": "Signed installers, auto-update, user documentation",
+      "user_visible_behavior": "Users get signed installers with an auto-update path and complete documentation.",
+      "status": "not_started",
+      "verification": [
+        "Signed installers for all three OSes install and run.",
+        "Update from an older version works.",
+        "README and user docs cover setup, build and packaging."
+      ],
+      "evidence": [],
+      "notes": "Phase 3."
+    }
+  ]
+}
