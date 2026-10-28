@@ -1,7 +1,6 @@
 {
   "project": "stage_finder",
-  "last_updated": "2026-10-28",
-  "rules": {
+  "last_updated": "2026-10-28",  "rules": {
     "single_active_feature": true,
     "passing_requires_evidence": true,
     "do_not_skip_verification": true
@@ -39,13 +38,18 @@
       "area": "infrastructure",
       "title": "SQLite + SQLModel + Alembic base models",
       "user_visible_behavior": "The app creates and migrates its local database with the core tables on first run.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "uv run alembic upgrade head applies migrations from empty to current.",
         "A downgrade to base and re-upgrade also succeeds.",
         "pytest covers model round-trips (create, read, update, delete)."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: `uv run alembic upgrade head` on an empty DB created all 12 tables (alembic_version + profile, experience, education, project, document, searchcriteria, offer, matchresult, application, llmusage, eventlog, modelconfig); `alembic downgrade base` then `upgrade head` both succeeded; `alembic current` = a1dc86066505 (head).",
+        "2026-10-28: uv run pytest 16 passed (tests/test_migrations.py: empty->head, head->base, base->head; tests/test_models.py: CRUD round-trips for profile+children, search criteria, offer+match+application, FK protection, dedup constraint, unique model config).",
+        "2026-10-28: live first-run smoke test: starting the sidecar created and migrated the SQLite DB in the data dir automatically; authenticated /health returned 200.",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 16, tsc+vite build, cargo check)."
+      ],
       "notes": "Phase 1 step 2. Tables per docs/ARCHITECTURE.md Data Storage."
     },
     {
