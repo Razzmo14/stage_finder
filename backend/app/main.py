@@ -50,6 +50,9 @@ def create_app(session_token: str | None = None) -> FastAPI:
 
     app.state.job_sources = {"france_travail": FranceTravailJobSource()}
     app.state.embedder = HashingEmbedder()
+    from app.services.letter_generation.grounding import HeuristicGroundingChecker
+
+    app.state.grounding_checker = HeuristicGroundingChecker()
 
     app.include_router(api_router)
     app.add_middleware(SessionTokenMiddleware)

@@ -144,13 +144,18 @@
       "area": "letter_generation",
       "title": "Letter generation with anti-hallucination grounding check",
       "user_visible_behavior": "The user gets an adapted letter, email subject and body per selected offer, with unsupported claims flagged.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Structured output (letter, subject, body, claims) validates against its Pydantic schema in tests.",
         "Grounding check flags a fabricated skill in a fixture letter (test with mocked verifier).",
         "French and English offers produce letters in the offer's language."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-28: tests/test_letters.py: LetterOutput schema validated on the generation path (native structured output); language detection fr/en by stopword ratio; French offer -> 'Write ... in French' instruction, English offer -> English instruction.",
+        "2026-10-28: grounding: heuristic checker flags 'Kubernetes' (absent from the profile) and supports 'Python at Acme'; LLMGroundingChecker with a mocked verifier flags the same fabricated skill (structured verdicts with reasons).",
+        "2026-10-28: POST /api/v1/letters/generate end to end with mocked provider: creates/updates an Application in status pending_review with letter, subject, body, claims and flagged claims; usage recorded (task=letter_generation); regeneration reuses the same row; 401 without token; 404 unknown offer.",
+        "2026-10-28: ./init.sh full run passed (ruff, pytest 63 passed, tsc+vite build, cargo check)."
+      ],
       "notes": "Phase 1 step 7."
     },
     {
